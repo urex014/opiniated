@@ -16,7 +16,7 @@ export function Field({
   const id = name;
   return (
     <div className="grid gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-ink">
+      <label htmlFor={id} className="text-[13px] font-medium text-ink">
         {label}
       </label>
       <input
@@ -27,7 +27,7 @@ export function Field({
         defaultValue={defaultValue}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className="h-10 rounded-md border border-line bg-white px-3 text-base text-ink"
+        className="field-input"
       />
       {error ? (
         <p id={`${id}-error`} className="text-sm text-danger">
@@ -41,7 +41,7 @@ export function Field({
 export function FormNote({ error, message }: { error?: string; message?: string }) {
   if (error) {
     return (
-      <p role="alert" className="rounded-md border border-line bg-white px-3 py-2 text-sm text-danger">
+      <p role="alert" className="rounded-md border border-line bg-danger-bg px-3 py-2 text-sm text-danger">
         {error}
       </p>
     );

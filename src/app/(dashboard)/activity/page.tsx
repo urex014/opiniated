@@ -21,16 +21,22 @@ export default async function ActivityPage({
 
   return (
     <>
-      <h1 className="text-[28px] font-medium">Activity</h1>
-      <p className="mt-1 text-sm text-muted">Survey attempts and reward changes for this account.</p>
+      <h1 className="page-title">Activity</h1>
+      <p className="mt-2 text-sm leading-6 text-muted">Survey attempts and reward changes for this account.</p>
       {activity.events.length === 0 ? (
-        <p className="mt-5 border border-line bg-white px-4 py-6 text-sm text-muted">
-          Nothing here yet. Start a survey and this page will show the attempt. Rewards appear after BitLabs confirms them.
-        </p>
+        <div className="mt-5 rounded-lg border border-line bg-white px-4 py-6">
+          <h2 className="section-title">Nothing here yet</h2>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Start a survey and this page will show the attempt. Rewards appear after BitLabs confirms them.
+          </p>
+          <Link href="/surveys" className="btn btn-primary mt-4">
+            Browse surveys
+          </Link>
+        </div>
       ) : (
-        <ul className="mt-5 divide-y divide-line border-y border-line bg-white">
+        <ul className="survey-list mt-5">
           {activity.events.map((event) => (
-            <li key={event.id} className="flex items-start justify-between gap-4 px-4 py-3 text-sm">
+            <li key={event.id} className="flex items-start justify-between gap-4 border-b border-line px-4 py-3 text-sm last:border-b-0">
               <div>
                 <p className="font-medium">{event.label}</p>
                 <p className="text-muted">{event.detail}</p>
@@ -39,7 +45,9 @@ export default async function ActivityPage({
                 </p>
               </div>
               {event.amountUnits !== null ? (
-                <p className="font-medium">{formatReward(event.amountUnits, env.rewardCurrencyCode, env.rewardMinorUnitFactor)}</p>
+                <p className={event.amountUnits < 0 ? "font-medium tabular-nums text-danger" : "font-medium tabular-nums text-brand"}>
+                  {formatReward(event.amountUnits, env.rewardCurrencyCode, env.rewardMinorUnitFactor)}
+                </p>
               ) : null}
             </li>
           ))}

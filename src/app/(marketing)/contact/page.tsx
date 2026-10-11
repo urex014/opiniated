@@ -1,22 +1,19 @@
 import type { Metadata } from "next";
-import { readEnv } from "@/lib/env";
+import Link from "next/link";
+import { SupportContact } from "@/components/legal/support-contact";
 
 export const metadata: Metadata = { title: "Contact" };
 
 export default function ContactPage() {
-  const email = readEnv().supportEmail;
   return (
-    <article className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-[28px] font-medium">Contact</h1>
-      {email ? (
-        <p className="mt-4 text-sm">
-          Email <a className="text-brand" href={`mailto:${email}`}>{email}</a> for account help.
-        </p>
-      ) : (
-        <p className="mt-4 text-sm text-muted">
-          The site operator has not published a support email yet. Set NEXT_PUBLIC_SUPPORT_EMAIL to show one here.
-        </p>
-      )}
+    <article className="mx-auto grid max-w-3xl gap-4 px-4 py-10 text-sm leading-6">
+      <h1 className="page-title">Contact</h1>
+      <SupportContact lead="For account help, reward questions, and privacy requests, email" />
+      <p>
+        Privacy requests are also described in the <Link href="/privacy" className="text-brand">Privacy Policy</Link>.
+        The same address is used on the <Link href="/terms" className="text-brand">Terms of Service</Link> and in the
+        footer. Signed-in account tools are on the account page after you log in.
+      </p>
     </article>
   );
 }

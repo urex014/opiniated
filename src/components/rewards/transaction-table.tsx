@@ -21,14 +21,14 @@ export function TransactionTable({
 }) {
   if (transactions.length === 0) {
     return (
-      <p className="border border-line bg-white px-4 py-6 text-sm text-muted">
+      <p className="rounded-lg border border-line bg-white px-4 py-6 text-sm leading-6 text-muted">
         No rewards yet. A reward appears here after BitLabs confirms a completion. Starting a survey does not add one.
       </p>
     );
   }
 
   return (
-    <div className="border border-line bg-white">
+    <div className="overflow-hidden rounded-lg border border-line bg-white">
       <table className="hidden w-full text-left text-sm md:table">
         <caption className="sr-only">Reward history</caption>
         <thead className="border-b border-line text-xs text-muted">
@@ -44,8 +44,8 @@ export function TransactionTable({
             <tr key={transaction.id} className="border-b border-line last:border-b-0">
               <td className="px-4 py-3 text-muted">{formatWhen(transaction.createdAt)}</td>
               <td className="px-4 py-3">{detail(transaction)}</td>
-              <td className="px-4 py-3">{statusLabel(transaction.status)}</td>
-              <td className="px-4 py-3 text-right font-medium">{formatReward(transaction.appliedUnits, currencyCode, factor)}</td>
+              <td className={`px-4 py-3 ${statusClass(transaction.status)}`}>{statusLabel(transaction.status)}</td>
+              <td className={`px-4 py-3 text-right ${amountClass(transaction.appliedUnits)}`}>{formatReward(transaction.appliedUnits, currencyCode, factor)}</td>
             </tr>
           ))}
         </tbody>
@@ -60,7 +60,7 @@ export function TransactionTable({
                   {formatWhen(transaction.createdAt)} · {statusLabel(transaction.status)}
                 </p>
               </div>
-              <p className="font-medium">{formatReward(transaction.appliedUnits, currencyCode, factor)}</p>
+              <p className={amountClass(transaction.appliedUnits)}>{formatReward(transaction.appliedUnits, currencyCode, factor)}</p>
             </div>
           </li>
         ))}
@@ -77,6 +77,17 @@ function detail(transaction: TransactionRow): string {
   }
   if (transaction.type === "START_BONUS") return `Profile reward · ${survey}`;
   return survey;
+}
+
+function amountClass(units: number): string {
+  if (units < 0) return "font-medium tabular-nums text-danger";
+  return "font-medium tabular-nums text-brand";
+}
+
+function statusClass(status: string): string {
+  if (status === "APPROVED") return "text-brand";
+  if (status === "REVERSED" || status === "REJECTED") return "text-danger";
+  return "text-muted";
 }
 
 function statusLabel(status: string): string {

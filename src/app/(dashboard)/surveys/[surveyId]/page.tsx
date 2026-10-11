@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/current-user";
+import { requireCurrentConsent } from "@/lib/legal/access";
 import { formatMinutes } from "@/lib/rewards/money";
 import { loadSurveysForUser } from "@/lib/surveys/load";
 
@@ -16,6 +17,7 @@ export default async function SurveyDetailPage({
   const { surveyId } = await params;
   if (!surveyId) notFound();
   const user = await requireUser();
+  await requireCurrentConsent(user.id, `/surveys/${surveyId}`);
   const result = await loadSurveysForUser(user.id);
   const survey = result.ok ? result.surveys.find((item) => item.id === surveyId) : undefined;
 
@@ -27,19 +29,19 @@ export default async function SurveyDetailPage({
         </Link>
       </p>
       {!result.ok ? (
-        <h1 className="mt-4 text-[28px] font-medium">Survey unavailable</h1>
+        <h1 className="page-title mt-4">Survey unavailable</h1>
       ) : !survey ? (
         <>
-          <h1 className="mt-4 text-[28px] font-medium">This survey is no longer listed</h1>
+          <h1 className="page-title mt-4">This survey is no longer listed</h1>
           <p className="mt-2 text-sm text-muted">It may have filled or you may no longer qualify. Return to the list for current surveys.</p>
         </>
       ) : (
         <>
-          <h1 className="mt-4 text-[28px] font-medium">{survey.title}</h1>
-          <dl className="mt-4 grid gap-3 border border-line bg-white p-4 text-sm sm:grid-cols-2">
+          <h1 className="page-title mt-4">{survey.title}</h1>
+          <dl className="mt-4 grid gap-3 rounded-lg border border-line bg-white p-4 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs text-muted">Reward</dt>
-              <dd className="mt-1 text-lg font-medium">{survey.rewardLabel}</dd>
+              <dd className="reward-amount mt-1">{survey.rewardLabel}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted">Estimated time</dt>
@@ -59,9 +61,13 @@ export default async function SurveyDetailPage({
           {survey.tags.includes("pii") ? (
             <p className="mt-3 text-sm text-muted">BitLabs marked this survey as one that may ask for personal information.</p>
           ) : null}
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+            The reward is added only after the provider sends a verified completion. Returning to this site, or saying
+            the survey is finished, does not change your balance.
+          </p>
           <form method="post" action="/api/surveys/start" className="mt-5">
             <input type="hidden" name="surveyId" value={survey.id} />
-            <button type="submit" className="inline-flex h-10 items-center rounded-md bg-brand px-4 text-sm font-medium text-white hover:bg-brand-hover">
+            <button type="submit" className="btn btn-primary btn-lg">
               Start survey
             </button>
           </form>

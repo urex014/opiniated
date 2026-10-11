@@ -3,6 +3,7 @@ import { RewardSummary } from "@/components/rewards/reward-summary";
 import { TransactionTable } from "@/components/rewards/transaction-table";
 import { requireUser } from "@/lib/auth/current-user";
 import { readEnv } from "@/lib/env";
+import { rewardUnitExplanation, rewardUnitName } from "@/lib/rewards/currency";
 import { listTransactions } from "@/lib/rewards/queries";
 import { prisma } from "@/lib/db";
 
@@ -19,9 +20,11 @@ export default async function RewardsPage() {
 
   return (
     <>
-      <h1 className="text-[28px] font-medium">Rewards</h1>
-      <p className="mt-1 max-w-2xl text-sm text-muted">
-        This page tracks rewards credited by verified BitLabs callbacks. It does not pay money out. Redemption is not available in this version.
+      <h1 className="page-title">Rewards</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+        Your balance is kept in {rewardUnitName(env.rewardCurrencyCode)}. Credits come from verified BitLabs callbacks.
+        TheoremReach is not connected. {rewardUnitExplanation(env.rewardCurrencyCode, env.rewardMinorUnitFactor)} A
+        pending provider review can later reverse an approved credit. The balance never goes below zero.
       </p>
       <div className="mt-5">
         <RewardSummary
@@ -31,7 +34,7 @@ export default async function RewardsPage() {
           factor={env.rewardMinorUnitFactor}
         />
       </div>
-      <h2 className="mb-3 mt-8 text-lg font-medium">Transactions</h2>
+      <h2 className="section-title mb-3 mt-8">Transactions</h2>
       <TransactionTable
         transactions={transactions}
         currencyCode={env.rewardCurrencyCode}

@@ -12,14 +12,14 @@ export function RewardSummary({
   factor: number;
 }) {
   return (
-    <dl className="grid gap-4 border border-line bg-white p-4 sm:grid-cols-2">
-      <div>
-        <dt className="text-xs text-muted">Available balance</dt>
-        <dd className="mt-1 text-2xl font-medium text-ink">{formatReward(availableUnits, currencyCode, factor)}</dd>
+    <dl className="balance-card grid sm:grid-cols-2">
+      <div className="px-4 py-4 sm:border-r sm:border-line">
+        <dt className="text-[13px] text-muted">Available balance</dt>
+        <dd className="reward-amount balance-figure mt-1">{formatReward(availableUnits, currencyCode, factor)}</dd>
       </div>
-      <div>
-        <dt className="text-xs text-muted">Total approved earnings</dt>
-        <dd className="mt-1 text-2xl font-medium text-ink">{formatReward(lifetimeCreditedUnits, currencyCode, factor)}</dd>
+      <div className="border-t border-line px-4 py-4 sm:border-t-0">
+        <dt className="text-[13px] text-muted">Total approved earnings</dt>
+        <dd className="mt-1 text-[2rem] font-medium tabular-nums tracking-tight text-ink">{formatReward(lifetimeCreditedUnits, currencyCode, factor)}</dd>
       </div>
     </dl>
   );

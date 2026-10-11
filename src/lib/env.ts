@@ -18,11 +18,11 @@ const schema = z.object({
   REWARD_CURRENCY_CODE: z.string().min(1).optional(),
   REWARD_MINOR_UNIT_FACTOR: z.coerce.number().int().positive().optional(),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().optional(),
-  SMTP_HOST: z.string().min(1).optional(),
-  SMTP_PORT: z.coerce.number().int().positive().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASSWORD: z.string().optional(),
-  SMTP_FROM: z.string().min(1).optional(),
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  TURNSTILE_HOSTNAMES: z.string().optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
 });
 
 export type AppEnv = {
@@ -36,7 +36,10 @@ export type AppEnv = {
   rewardCurrencyCode: string;
   rewardMinorUnitFactor: number;
   supportEmail: string | null;
-  smtp: { host: string; port: number; user: string | null; password: string | null; from: string } | null;
+  turnstileSiteKey: string | null;
+  turnstileSecret: string | null;
+  turnstileHostnames: string[];
+  email: { apiKey: string; from: string } | null;
 };
 
 function blankToUndefined(value: string | undefined): string | undefined {
@@ -44,7 +47,7 @@ function blankToUndefined(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-export function readEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
+export function readEnv(source: Record<string, string | undefined> = process.env): AppEnv {
   const parsed = schema.parse({
     DATABASE_URL: blankToUndefined(source.DATABASE_URL),
     AUTH_SECRET: blankToUndefined(source.AUTH_SECRET),
@@ -56,11 +59,11 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     REWARD_CURRENCY_CODE: blankToUndefined(source.REWARD_CURRENCY_CODE),
     REWARD_MINOR_UNIT_FACTOR: blankToUndefined(source.REWARD_MINOR_UNIT_FACTOR),
     NEXT_PUBLIC_SUPPORT_EMAIL: blankToUndefined(source.NEXT_PUBLIC_SUPPORT_EMAIL),
-    SMTP_HOST: blankToUndefined(source.SMTP_HOST),
-    SMTP_PORT: blankToUndefined(source.SMTP_PORT),
-    SMTP_USER: blankToUndefined(source.SMTP_USER),
-    SMTP_PASSWORD: blankToUndefined(source.SMTP_PASSWORD),
-    SMTP_FROM: blankToUndefined(source.SMTP_FROM),
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: blankToUndefined(source.NEXT_PUBLIC_TURNSTILE_SITE_KEY),
+    TURNSTILE_SECRET_KEY: blankToUndefined(source.TURNSTILE_SECRET_KEY),
+    TURNSTILE_HOSTNAMES: blankToUndefined(source.TURNSTILE_HOSTNAMES),
+    RESEND_API_KEY: blankToUndefined(source.RESEND_API_KEY),
+    EMAIL_FROM: blankToUndefined(source.EMAIL_FROM),
   });
 
   const factor = parsed.REWARD_MINOR_UNIT_FACTOR ?? 1;
@@ -79,16 +82,31 @@ export function readEnv(source: NodeJS.ProcessEnv = process.env): AppEnv {
     rewardCurrencyCode: parsed.REWARD_CURRENCY_CODE ?? "PTS",
     rewardMinorUnitFactor: factor,
     supportEmail: parsed.NEXT_PUBLIC_SUPPORT_EMAIL ?? null,
-    smtp: parsed.SMTP_HOST
-      ? {
-          host: parsed.SMTP_HOST,
-          port: parsed.SMTP_PORT ?? 587,
-          user: parsed.SMTP_USER ?? null,
-          password: parsed.SMTP_PASSWORD ?? null,
-          from: parsed.SMTP_FROM ?? "Opiniated <noreply@localhost>",
-        }
-      : null,
+    turnstileSiteKey: parsed.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null,
+    turnstileSecret: parsed.TURNSTILE_SECRET_KEY ?? null,
+    turnstileHostnames: (parsed.TURNSTILE_HOSTNAMES ?? "")
+      .split(",")
+      .map((hostname) => hostname.trim().toLowerCase())
+      .filter(Boolean),
+    email: emailConfig(parsed.RESEND_API_KEY, parsed.EMAIL_FROM),
   };
+}
+
+function emailConfig(apiKey: string | undefined, from: string | undefined): AppEnv["email"] {
+  const sender = normalizeFrom(from);
+  if (!apiKey || !sender) return null;
+  return { apiKey, from: sender };
+}
+
+function normalizeFrom(value: string | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const wrapped = trimmed.match(/^(.+?)\s*<([^<>\s]+)>$/);
+  const address = (wrapped ? wrapped[2] : trimmed).trim();
+  const name = wrapped ? wrapped[1].trim().replace(/^["']|["']$/g, "") : "";
+  if (name.includes("<") || name.includes(">")) return null;
+  if (!z.string().email().safeParse(address).success) return null;
+  return name ? `${name} <${address}>` : address;
 }
 
 export function requireDatabaseUrl(): string {

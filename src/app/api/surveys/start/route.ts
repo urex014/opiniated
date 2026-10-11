@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { requireCurrentConsent } from "@/lib/legal/access";
 import { isAllowedSurveyClickUrl } from "@/lib/security/click-url";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { loadSurveysForUser } from "@/lib/surveys/load";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.redirect(new URL("/login", request.url), 303);
+  if (!user) {
+    const url = new URL("/login", request.url);
+    url.searchParams.set("next", "/surveys");
+    return NextResponse.redirect(url, 303);
+  }
+  await requireCurrentConsent(user.id, "/surveys");
 
   const origin = request.headers.get("origin");
   if (origin) {

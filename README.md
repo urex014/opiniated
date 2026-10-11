@@ -59,8 +59,12 @@ Open `http://localhost:3000`.
 | `BITLABS_ENFORCE_IP_ALLOWLIST` | No | `true` rejects callbacks whose trusted client IP is outside the published BitLabs ranges. |
 | `REWARD_CURRENCY_CODE` | No | Display code. Default `PTS`. |
 | `REWARD_MINOR_UNIT_FACTOR` | No | Integer units per major unit. Default `1`. |
-| `NEXT_PUBLIC_SUPPORT_EMAIL` | No | Shown on Contact. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` | No | Password reset email. If `SMTP_HOST` is empty, reset mail is not sent. |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Required before launch | Monitored inbox shown on Contact, Privacy, Terms, and the footer. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Required for signup | Cloudflare Turnstile site key. Public. |
+| `TURNSTILE_SECRET_KEY` | Required for signup | Cloudflare Turnstile secret. Server only. Registration fails closed without it. |
+| `TURNSTILE_HOSTNAMES` | Required for signup | Comma-separated frontend hostnames accepted from siteverify. Use `localhost` in local development. Production must list the public host only. |
+| `RESEND_API_KEY` | No | Server-only Resend API key. Password reset and email verification are not sent without it. |
+| `EMAIL_FROM` | No | Sender on a domain verified in Resend, as `you@your-domain` or `Opiniated <you@your-domain>`. Required with the API key. |
 
 Do not commit `.env`.
 
@@ -70,7 +74,7 @@ BitLabs `value` is the user reward in the app currency configured under BitLabs 
 
 Opiniated parses `value` into an integer:
 
-- `REWARD_MINOR_UNIT_FACTOR=1` and `REWARD_CURRENCY_CODE=PTS` stores `120` as 120 and shows `120 PTS`.
+- `REWARD_MINOR_UNIT_FACTOR=1` and `REWARD_CURRENCY_CODE=PTS` stores `120` as 120 Opiniated Points and shows `120 PTS`. There is no cash conversion in that configuration, and the balance cannot be withdrawn.
 - `REWARD_MINOR_UNIT_FACTOR=100` and `REWARD_CURRENCY_CODE=USD` stores `1.20` as 120 cents and shows `$1.20`.
 
 Confirm the factor against your BitLabs currency settings before presenting balances as cash. A credited balance is not a withdrawal.
@@ -186,7 +190,7 @@ npx prisma generate
 - Confirm BitLabs has enabled server-side survey API access and the `client_ip` override if you forward IPs.
 - Confirm the currency factor before showing USD.
 - Consider `BITLABS_ENFORCE_IP_ALLOWLIST=true` behind a proxy that sets a trusted client IP.
-- Configure SMTP if you want password reset email. Without it, the forgot-password page still returns a generic message and does not send mail.
+- Set `RESEND_API_KEY` and `EMAIL_FROM` to send password reset and verification email through Resend. Without both, the forgot-password page still returns a generic message and does not send mail. Verify the sending domain in Resend before launch.
 
 The session cookie is `httpOnly`, `SameSite=Lax`, and `Secure` in production.
 

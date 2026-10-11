@@ -93,6 +93,18 @@ describe("reward postbacks", () => {
     expect(store.balance("user-1")).toBe(0);
   });
 
+  it("keeps the ledger consistent when two different callbacks arrive together", async () => {
+    const store = new MemoryRewardStore();
+    store.ensureAccount("user-1");
+    const [first, second] = await Promise.all([
+      processPostback(store, input({ uid: "user-1", tx: "tx-a", val: "40", type: "COMPLETE" })),
+      processPostback(store, input({ uid: "user-1", tx: "tx-b", val: "25", type: "COMPLETE" })),
+    ]);
+    expect([first.outcome, second.outcome].sort()).toEqual(["ACCEPTED", "ACCEPTED"]);
+    expect(store.balance("user-1")).toBe(65);
+    expect(store.transactionCount()).toBe(2);
+  });
+
   it("does not double-credit concurrent duplicate callbacks", async () => {
     const store = new MemoryRewardStore();
     store.ensureAccount("user-1");

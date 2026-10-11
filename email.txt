@@ -1,0 +1,16 @@
+Hello,
+
+I operate Opiniated, a survey rewards website where registered users complete third-party surveys and earn rewards.
+
+I'm looking for a survey provider that supports direct API integration, user-specific survey matching, and server-to-server completion callbacks so I can integrate surveys into my existing platform.
+
+Could you please confirm:
+
+- Whether you accept independent survey rewards websites and incentivized traffic.
+- Whether publishers based in Nigeria can apply and serve users internationally.
+- Whether you offer API access rather than only a hosted offerwall.
+- Your approval requirements, expected review time, payout methods, and minimum payout.
+
+Website: https://opiniated.vercel.app
+
+Thank you.

@@ -7,11 +7,11 @@ export const metadata: Metadata = { title: "Forgot password" };
 export default function ForgotPasswordPage() {
   return (
     <>
-      <h1 className="text-[28px] font-medium">Reset your password</h1>
+      <h1 className="page-title">Reset your password</h1>
       <p className="mt-2 text-sm text-muted">
         If email delivery is configured, we send a reset link. The response is the same whether or not the email is registered.
       </p>
-      <div className="mt-6 border border-line bg-white p-4">
+      <div className="auth-card">
         <ForgotForm />
       </div>
       <p className="mt-4 text-sm">

@@ -6,11 +6,14 @@
   --ink: #202124;
   --muted: #6b7280;
   --line: #e5e7eb;
+  --line-strong: #d5d9e0;
   --brand: #247a57;
   --brand-hover: #1c6245;
+  --brand-wash: #f3faf6;
   --success-bg: #eaf5ee;
   --warning: #b7791f;
   --danger: #c2413b;
+  --danger-bg: #fdf2f2;
 }
 
 @theme inline {
@@ -19,11 +22,14 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
+  --color-brand-wash: var(--brand-wash);
   --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
   --font-sans: var(--font-geist-sans), Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -32,12 +38,187 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+@media (min-width: 640px) {
+  .page-title-display {
+    font-size: 2.5rem;
+  }
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.reward-amount {
+  color: var(--brand);
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.balance-figure {
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.balance-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--brand);
+  border-radius: 10px;
+  background: var(--brand-wash);
+}
+
+.field-input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.4;
+  transition-property: border-color, box-shadow;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.field-input:hover {
+  border-color: var(--line-strong);
+}
+
+.field-input:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 16%, transparent);
+}
+
+.btn {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition-property: background-color, color, border-color, transform;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn-lg {
+  height: 44px;
+  padding-inline: 16px;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-hover);
+}
+
+.btn-secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.auth-card {
+  margin-top: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 1.25rem;
+}
+
+.survey-list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.survey-row {
+  display: grid;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  transition-property: background-color;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.survey-row:last-child {
+  border-bottom: 0;
+}
+
+@media (hover: hover) {
+  .survey-row:hover {
+    background: var(--brand-wash);
+  }
+}
+
+.menu-panel {
+  display: grid;
+  transition-property: grid-template-rows;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Hide the mobile menu control from the desktop header. */
+@media (min-width: 48rem) {
+  .desktop-only-hidden {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -47,5 +228,9 @@ body {
     scroll-behavior: auto !important;
     transition: none !important;
     animation: none !important;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: none;
   }
 }

@@ -3,7 +3,7 @@ import type { SurveyRestriction } from "@/lib/bitlabs/types";
 
 export function SurveySkeleton() {
   return (
-    <div className="border-y border-line bg-white" aria-hidden="true">
+    <div className="survey-list" aria-hidden="true">
       {Array.from({ length: 4 }, (_, index) => (
         <div key={index} className="border-b border-line px-4 py-4 last:border-b-0">
           <div className="h-4 w-48 rounded-sm bg-surface" />
@@ -14,17 +14,24 @@ export function SurveySkeleton() {
   );
 }
 
-export function EmptySurveys({ restriction }: { restriction: SurveyRestriction | null }) {
+export function EmptySurveys({
+  restriction,
+  detail,
+}: {
+  restriction: SurveyRestriction | null;
+  detail?: string;
+}) {
   return (
-    <div className="border border-line bg-white px-4 py-6">
-      <h2 className="text-lg font-medium text-ink">
+    <div className="rounded-lg border border-line bg-white px-4 py-6">
+      <h2 className="section-title text-ink">
         {restriction ? "Surveys are unavailable" : "No surveys available right now"}
       </h2>
-      <p className="mt-2 max-w-xl text-sm text-muted">
+      <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
         {restriction?.message ??
           "Survey availability can change throughout the day. Check back later for new opportunities."}
       </p>
-      <Link href="/surveys" className="mt-4 inline-flex h-10 items-center rounded-md border border-line px-3 text-sm font-medium">
+      {detail ? <p className="mt-2 max-w-xl text-sm leading-6 text-ink">{detail}</p> : null}
+      <Link href="/surveys" className="btn btn-secondary mt-4">
         Refresh surveys
       </Link>
     </div>
@@ -45,10 +52,10 @@ const errorCopy: Record<string, string> = {
 
 export function SurveyError({ code }: { code: string }) {
   return (
-    <div className="border border-line bg-white px-4 py-6" role="alert">
-      <h2 className="text-lg font-medium text-ink">Surveys could not be loaded</h2>
-      <p className="mt-2 text-sm text-muted">{errorCopy[code] ?? errorCopy.unavailable}</p>
-      <Link href="/surveys" className="mt-4 inline-flex h-10 items-center rounded-md border border-line px-3 text-sm font-medium">
+    <div className="rounded-lg border border-line bg-white px-4 py-6" role="alert">
+      <h2 className="section-title text-ink">Surveys could not be loaded</h2>
+      <p className="mt-2 text-sm leading-6 text-muted">{errorCopy[code] ?? errorCopy.unavailable}</p>
+      <Link href="/surveys" className="btn btn-secondary mt-4">
         Retry
       </Link>
     </div>

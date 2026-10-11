@@ -8,16 +8,20 @@ datasource db {
 }
 
 model User {
-  id            String               @id @default(auto()) @map("_id") @db.ObjectId
-  email         String               @unique
-  name          String?
-  passwordHash  String
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  rewardAccount RewardAccount?
-  transactions  RewardTransaction[]
-  activities    SurveyActivity[]
-  resetTokens   PasswordResetToken[]
+  id                   String                   @id @default(auto()) @map("_id") @db.ObjectId
+  email                String                   @unique
+  name                 String?
+  passwordHash         String
+  emailVerifiedAt      DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  rewardAccount        RewardAccount?
+  transactions         RewardTransaction[]
+  activities           SurveyActivity[]
+  resetTokens          PasswordResetToken[]
+  verificationTokens   EmailVerificationToken[]
+  consents             ConsentRecord[]
 }
 
 model PasswordResetToken {
@@ -30,6 +34,34 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// One acceptance of one policy version. Rows are inserted and never rewritten.
+model ConsentRecord {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document    String
+  version     String
+  action      String
+  acceptedAt  DateTime @default(now())
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, document, acceptedAt])
 }
 
 model RewardAccount {

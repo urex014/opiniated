@@ -13,9 +13,9 @@ export default async function ResetPasswordPage({
   const token = params.token ?? "";
   return (
     <>
-      <h1 className="text-[28px] font-medium">Choose a new password</h1>
+      <h1 className="page-title">Choose a new password</h1>
       {token ? (
-        <div className="mt-6 border border-line bg-white p-4">
+        <div className="auth-card">
           <ResetForm token={token} />
         </div>
       ) : (

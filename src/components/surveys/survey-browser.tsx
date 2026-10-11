@@ -24,7 +24,7 @@ export function SurveyBrowser({ surveys }: { surveys: PublicSurvey[] }) {
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as typeof sort)}
-            className="ml-2 h-9 rounded-md border border-line bg-white px-2 text-sm text-ink"
+            className="field-input ml-2 h-10 w-auto px-2 text-sm"
           >
             <option value="recommended">Recommended</option>
             <option value="reward">Highest reward</option>
@@ -32,10 +32,10 @@ export function SurveyBrowser({ surveys }: { surveys: PublicSurvey[] }) {
           </select>
         </label>
       </div>
-      <div className="border-y border-line bg-white">
+      <div className="survey-list">
         <ul>
           {sorted.map((survey) => (
-            <li key={survey.id} className="border-b border-line px-4 py-4 last:border-b-0">
+            <li key={survey.id}>
               <SurveyRow survey={survey} />
             </li>
           ))}
@@ -47,31 +47,28 @@ export function SurveyBrowser({ surveys }: { surveys: PublicSurvey[] }) {
 
 export function SurveyRow({ survey }: { survey: PublicSurvey }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <div className="survey-row sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
-        <h2 className="text-base font-medium text-ink">
-          <a href={`/surveys/${encodeURIComponent(survey.id)}`} className="hover:text-brand">
+        <h2 className="text-base font-medium leading-snug text-ink">
+          <a href={`/surveys/${encodeURIComponent(survey.id)}`} className="transition-colors duration-150 hover:text-brand">
             {survey.title}
           </a>
         </h2>
         <p className="mt-1 text-sm text-muted">
           {survey.durationMinutes === null ? "Estimated time not provided" : `Estimated time: ${formatMinutes(survey.durationMinutes)}`}
         </p>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs leading-5 text-muted">
           {survey.type === "start_bonus" ? "Profile questions" : "Survey"}
           {survey.rating ? ` · Ease ${survey.rating} of 5` : ""}
           {survey.tags.includes("pii") ? " · May ask personal questions" : ""}
           {survey.tags.includes("recontact") ? " · Follow-up survey" : ""}
         </p>
       </div>
-      <div className="flex items-center justify-between gap-4 sm:block sm:text-right">
-        <p className="text-lg font-medium text-ink">{survey.rewardLabel}</p>
-        <form method="post" action="/api/surveys/start" className="sm:mt-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end">
+        <p className="reward-amount">{survey.rewardLabel}</p>
+        <form method="post" action="/api/surveys/start">
           <input type="hidden" name="surveyId" value={survey.id} />
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center rounded-md bg-brand px-3 text-sm font-medium text-white hover:bg-brand-hover"
-          >
+          <button type="submit" className="btn btn-primary">
             Start survey
           </button>
         </form>
