@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String               @id @default(auto()) @map("_id") @db.ObjectId
+  email         String               @unique
+  name          String?
+  passwordHash  String
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  rewardAccount RewardAccount?
+  transactions  RewardTransaction[]
+  activities    SurveyActivity[]
+  resetTokens   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model RewardAccount {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String   @unique @db.ObjectId
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availableUnits        Int      @default(0)
+  lifetimeCreditedUnits Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model RewardTransaction {
+  id             String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String             @db.ObjectId
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       String
+  providerTxId   String
+  type           String
+  amountUnits    Int
+  appliedUnits   Int
+  shortfallUnits Int                @default(0)
+  currencyCode   String
+  status         String
+  surveyId       String?
+  refTxId        String?
+  reason         String?
+  providerUsd    String?
+  createdAt      DateTime           @default(now())
+  activities     SurveyActivity[]
+
+  @@unique([provider, providerTxId])
+  @@index([userId, createdAt])
+}
+
+model SurveyActivity {
+  id            String             @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String             @db.ObjectId
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider      String
+  surveyId      String
+  status        String
+  startedAt     DateTime?
+  completedAt   DateTime?
+  transactionId String?            @db.ObjectId
+  transaction   RewardTransaction? @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime           @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, surveyId])
+}
+
+/// Idempotency anchor for a provider callback. userId stays a plain string so an
+/// unknown or malformed provider user id can still be recorded.
+model ProcessedCallback {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  provider     String
+  providerTxId String
+  outcome      String
+  userId       String?
+  type         String?
+  createdAt    DateTime @default(now())
+
+  @@unique([provider, providerTxId])
+  @@index([createdAt])
+}
+
+model PostbackLog {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  provider     String
+  providerTxId String?
+  outcome      String
+  userId       String?
+  type         String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+}
