@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: "Can I withdraw the balance?",
-    a: "This version tracks rewards that have been credited. It does not pay them out. A balance is not a cash transfer.",
+    a: "100 OPN equal $1.00. Once your available balance reaches $5.00 and a verified Nigerian bank account is saved, the next scheduled batch includes you. You do not request a withdrawal. The transfer is paid only after Paystack confirms it.",
   },
   {
     q: "What if I do not qualify?",
@@ -73,12 +73,12 @@ export default function HomePage() {
           <div>
             <h2 className="section-title">How rewards work</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Each survey shows the reward amount BitLabs provides for your account. Amounts use the currency configured
-              for this site. They are stored as whole units so balances do not drift.
+              Each survey shows the reward BitLabs provides for your account. 100 OPN equal $1.00. Amounts are stored as
+              whole OPN so balances do not drift.
             </p>
             <p className="mt-3 text-sm leading-6 text-muted">
               Completions and reversals come from signed server callbacks. You cannot add a reward from the browser.
-              Redemption is not part of this site yet, so a credited balance is a record of earnings, not a payout.
+              Once the available balance reaches $5.00, the next scheduled batch can reserve it. Paystack confirms the payment.
             </p>
           </div>
           <div className="rounded-lg border border-line bg-white p-4">
@@ -122,8 +122,8 @@ export default function HomePage() {
 
 function ExampleList() {
   const rows = [
-    ["Shopping habits", "8 minutes", "0.75 PTS"],
-    ["Weekly media diary", "12 minutes", "1.10 PTS"],
+    ["Shopping habits", "8 minutes", "75 OPN ($0.75)"],
+    ["Weekly media diary", "12 minutes", "110 OPN ($1.10)"],
   ];
   return (
     <aside className="survey-list bg-white" aria-label="Example of the survey list">

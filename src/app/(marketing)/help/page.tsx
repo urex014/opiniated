@@ -13,8 +13,8 @@ export default function HelpPage() {
         <p>A survey that will not start has usually left the list. Go back to Surveys and pick a current one.</p>
         <p>
           You need an account before a survey can be started. Reward questions belong on the rewards page after you
-          sign in. Only a verified provider callback changes the balance. Opiniated Points are the in-app record of
-          those credits. They are not cashed out in this version.
+          sign in. Only a verified provider callback changes the balance. Payouts are sent automatically once the balance
+          reaches $5.00 and a verified bank account is saved. 100 OPN equal $1.00.
         </p>
         <p>
           Privacy requests and the support address are on the <Link href="/contact" className="text-brand">contact page</Link>.

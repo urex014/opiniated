@@ -7,6 +7,8 @@ export async function GET() {
   const summary = await getRewardSummary(user.id);
   return Response.json({
     availableUnits: summary.availableUnits,
+    reservedUnits: summary.reservedUnits,
+    spendableUnits: summary.spendableUnits,
     lifetimeCreditedUnits: summary.lifetimeCreditedUnits,
     transactions: summary.transactions.map((transaction) => ({
       id: transaction.id,

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { RegisterForm } from "@/components/forms/auth-forms";
+import { LoginForm, RegisterForm } from "@/components/forms/auth-forms";
 import { PasswordField } from "@/components/ui/password-field";
 
 describe("registration form", () => {
@@ -34,5 +34,12 @@ describe("registration form", () => {
     expect(confirm).toContain('type="password"');
     expect(confirm).toContain("Show confirm password");
     expect(confirm).not.toContain(">Show password<");
+  });
+
+  it("requires the Turnstile check on the login form", () => {
+    const html = renderToStaticMarkup(<LoginForm siteKey={null} />);
+    expect(html).toContain("Log in");
+    expect(html).toContain("NEXT_PUBLIC_TURNSTILE_SITE_KEY");
+    expect(html).toContain("TURNSTILE_HOSTNAMES");
   });
 });

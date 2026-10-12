@@ -5,7 +5,7 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
 
-  const [consents, transactions, activities] = await Promise.all([
+  const [consents, transactions, activities, payout, withdrawals] = await Promise.all([
     prisma.consentRecord.findMany({
       where: { userId: user.id },
       orderBy: { acceptedAt: "asc" },
@@ -31,6 +31,15 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
       select: { provider: true, surveyId: true, status: true, startedAt: true, completedAt: true, createdAt: true },
     }),
+    prisma.payoutAccount.findUnique({
+      where: { userId: user.id },
+      select: { bankName: true, bankCode: true, accountLast4: true, accountName: true, recipientCode: true, updatedAt: true },
+    }),
+    prisma.withdrawal.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select: { points: true, amountKobo: true, currency: true, status: true, reference: true, failureReason: true, requestedAt: true, completedAt: true },
+    }),
   ]);
 
   return Response.json({
@@ -48,6 +57,14 @@ export async function GET() {
     transactions: transactions.map((record) => ({
       ...record,
       createdAt: record.createdAt.toISOString(),
+    })),
+    payoutAccount: payout
+      ? { ...payout, updatedAt: payout.updatedAt.toISOString() }
+      : null,
+    withdrawals: withdrawals.map((record) => ({
+      ...record,
+      requestedAt: record.requestedAt.toISOString(),
+      completedAt: record.completedAt?.toISOString() ?? null,
     })),
     activities: activities.map((record) => ({
       ...record,

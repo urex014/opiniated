@@ -9,7 +9,7 @@ const steps = [
   { title: "You answer them on the provider’s site", text: "Choose a survey and you are sent to the provider-hosted survey. Opiniated does not host the questionnaire." },
   { title: "A signed callback credits the reward", text: "When our providers confirms a completion, it calls this site with a signed request. That request is checked, stored once, and applied to your balance. A second copy of the same callback does not add the reward again." },
   { title: "Reversals stay in the history", text: "If a completion is later reversed, the balance is reduced and the original transaction stays in the history." },
-  { title: "This page is a ledger", text: "There is no withdrawal flow in this version. The rewards page is a ledger, not a bank transfer." },
+  { title: "Payouts run in scheduled batches", text: "100 OPN equal $1.00. Once the available balance reaches $5.00 and a verified Nigerian bank account has been saved, the next batch reserves it. You do not submit a withdrawal request. Paystack marks it paid only after the transfer succeeds." },
 ];
 
 export default function HowItWorksPage() {

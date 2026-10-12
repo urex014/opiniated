@@ -8,8 +8,12 @@ export async function getRewardSummary(userId: string) {
     orderBy: { createdAt: "desc" },
     take: 8,
   });
+  const availableUnits = account?.availableUnits ?? 0;
+  const reservedUnits = account?.reservedUnits ?? 0;
   return {
-    availableUnits: account?.availableUnits ?? 0,
+    availableUnits,
+    reservedUnits,
+    spendableUnits: Math.max(0, availableUnits - reservedUnits),
     lifetimeCreditedUnits: account?.lifetimeCreditedUnits ?? 0,
     transactions,
   };
@@ -55,7 +59,7 @@ export async function listActivity(userId: string, page: number) {
       id: `transaction-${transaction.id}`,
       at: transaction.createdAt,
       label: transactionLabel(transaction.type, transaction.status, transaction.appliedUnits),
-      detail: transaction.surveyId ? `Survey ${transaction.surveyId}` : "Reward adjustment",
+      detail: transactionDetail(transaction.type, transaction.surveyId),
       amountUnits: transaction.appliedUnits,
     })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
@@ -69,6 +73,11 @@ export async function listActivity(userId: string, page: number) {
   };
 }
 
+function transactionDetail(type: string, surveyId: string | null): string {
+  if (type === "WITHDRAWAL" || type === "WITHDRAWAL_REVERSAL") return "Bank withdrawal";
+  return surveyId ? `Survey ${surveyId}` : "Reward adjustment";
+}
+
 function activityLabel(status: string): string {
   if (status === "STARTED") return "Survey started";
   if (status === "COMPLETED") return "Survey completion confirmed";
@@ -78,6 +87,13 @@ function activityLabel(status: string): string {
 }
 
 function transactionLabel(type: string, status: string, appliedUnits: number): string {
+  if (type === "WITHDRAWAL_REVERSAL") return "Withdrawal returned";
+  if (type === "WITHDRAWAL") {
+    if (status === "PAID") return "Withdrawal paid";
+    if (status === "RELEASED" || status === "FAILED" || status === "REJECTED") return "Withdrawal released";
+    if (status === "REVERSED") return "Withdrawal reversed";
+    return "Withdrawal reserved";
+  }
   if (type === "RECONCILIATION" || status === "REVERSED") {
     return appliedUnits < 0 ? "Reward reversed" : "Reward adjusted";
   }

@@ -1,5 +1,6 @@
 export type AccountState = {
   availableUnits: number;
+  reservedUnits: number;
   lifetimeCreditedUnits: number;
 };
 
@@ -15,11 +16,14 @@ export type RewardPlan = {
 };
 
 /**
- * Reversal policy: a negative adjustment reduces the available balance down to
- * zero. Any amount that cannot be collected is stored as shortfallUnits.
- * Available balance never goes below zero. Historical rows are not deleted.
+ * Reversal policy: a negative adjustment collects only from the spendable
+ * balance (available minus reserved). Reserved withdrawal funds stay reserved.
+ * Any amount that cannot be collected is stored as shortfallUnits. Available
+ * balance never goes below the reserved amount, and never below zero.
+ * Historical rows are not deleted.
  */
 export function planReward(account: AccountState, type: MoneyEventType | "SCREENOUT", amountUnits: number): RewardPlan {
+  const reservedUnits = account.reservedUnits;
   if (type === "SCREENOUT") {
     return {
       type,
@@ -41,12 +45,14 @@ export function planReward(account: AccountState, type: MoneyEventType | "SCREEN
         shortfallUnits: 0,
         next: {
           availableUnits: account.availableUnits + amountUnits,
+          reservedUnits,
           lifetimeCreditedUnits: account.lifetimeCreditedUnits + amountUnits,
         },
       };
     }
     const requested = -amountUnits;
-    const collected = Math.min(account.availableUnits, requested);
+    const spendable = Math.max(0, account.availableUnits - reservedUnits);
+    const collected = Math.min(spendable, requested);
     return {
       type,
       status: "REVERSED",
@@ -55,6 +61,7 @@ export function planReward(account: AccountState, type: MoneyEventType | "SCREEN
       shortfallUnits: requested - collected,
       next: {
         availableUnits: account.availableUnits - collected,
+        reservedUnits,
         lifetimeCreditedUnits: account.lifetimeCreditedUnits,
       },
     };
@@ -68,6 +75,7 @@ export function planReward(account: AccountState, type: MoneyEventType | "SCREEN
     shortfallUnits: 0,
     next: {
       availableUnits: account.availableUnits + amountUnits,
+      reservedUnits,
       lifetimeCreditedUnits: account.lifetimeCreditedUnits + amountUnits,
     },
   };

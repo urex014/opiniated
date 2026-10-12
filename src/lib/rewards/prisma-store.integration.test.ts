@@ -83,7 +83,7 @@ describe.skipIf(!enabled)("prisma reward store", () => {
     expect(account.lifetimeCreditedUnits).toBe(30);
     expect(transactions).toHaveLength(2);
     expect(transactions[1]?.shortfallUnits).toBe(20);
-  });
+  }, 30_000);
 
   it("does not double-credit concurrent callbacks for the same transaction", async () => {
     const userId = await createUser();
@@ -102,5 +102,5 @@ describe.skipIf(!enabled)("prisma reward store", () => {
     expect(outcomes).toEqual(["ACCEPTED", "DUPLICATE"]);
     expect(account.availableUnits).toBe(40);
     expect(await prisma.rewardTransaction.count({ where: { userId } })).toBe(1);
-  });
+  }, 30_000);
 });

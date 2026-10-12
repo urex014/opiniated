@@ -1,4 +1,4 @@
-const MAX_UNITS = 1_000_000_000;
+export const MAX_UNITS = 1_000_000_000;
 
 export function isPowerOfTen(factor: number): boolean {
   if (!Number.isInteger(factor) || factor < 1) return false;
@@ -53,7 +53,24 @@ const ISO_CURRENCIES = new Set([
   "GHS",
 ]);
 
+/** 100 OPN = $1.00. One OPN is one US cent. */
+export const OPN_PER_USD = 100;
+
+export function formatOpnAmount(units: number): string {
+  if (!Number.isInteger(units)) return `${units} OPN`;
+  const negative = units < 0;
+  const abs = Math.abs(units);
+  const grouped = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(abs);
+  const cents = BigInt(abs);
+  const dollars = cents / BigInt(OPN_PER_USD);
+  const remainder = cents % BigInt(OPN_PER_USD);
+  const usd = `$${dollars.toString()}.${remainder.toString().padStart(2, "0")}`;
+  const sign = negative ? "-" : "";
+  return `${sign}${grouped} OPN (${sign}${usd})`;
+}
+
 export function formatReward(units: number, currencyCode: string, factor: number): string {
+  if (currencyCode === "OPN") return formatOpnAmount(units);
   const places = isPowerOfTen(factor) ? decimalPlaces(factor) : 0;
   const major = units / factor;
   if (ISO_CURRENCIES.has(currencyCode)) {

@@ -2,7 +2,7 @@
 
 Opiniated is a survey rewards site. People create an account, browse surveys returned by BitLabs for that account, and earn rewards when BitLabs confirms a completion.
 
-Rewards are an internal ledger. This version does not pay money out.
+Rewards are an internal ledger. Eligible points can be reserved for a Paystack transfer to a Nigerian bank account. A request is not paid until Paystack confirms it.
 
 ## Requirements
 
@@ -57,16 +57,54 @@ Open `http://localhost:3000`.
 | `BITLABS_SECRET` | Yes for callbacks | App secret used for the callback HMAC. |
 | `BITLABS_CALLBACK_URL` | Required behind a proxy | Public callback URL without a query string. |
 | `BITLABS_ENFORCE_IP_ALLOWLIST` | No | `true` rejects callbacks whose trusted client IP is outside the published BitLabs ranges. |
-| `REWARD_CURRENCY_CODE` | No | Display code. Default `PTS`. |
-| `REWARD_MINOR_UNIT_FACTOR` | No | Integer units per major unit. Default `1`. |
+| `REWARD_CURRENCY_CODE` | No | Display code. Default `PTS`. This deployment uses `OPN`. |
+| `REWARD_MINOR_UNIT_FACTOR` | No | Scales a provider decimal into stored units. Default `1`. For OPN priced from dollars, use `100`. |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | Required before launch | Monitored inbox shown on Contact, Privacy, Terms, and the footer. |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Required for signup | Cloudflare Turnstile site key. Public. |
 | `TURNSTILE_SECRET_KEY` | Required for signup | Cloudflare Turnstile secret. Server only. Registration fails closed without it. |
 | `TURNSTILE_HOSTNAMES` | Required for signup | Comma-separated frontend hostnames accepted from siteverify. Use `localhost` in local development. Production must list the public host only. |
 | `RESEND_API_KEY` | No | Server-only Resend API key. Password reset and email verification are not sent without it. |
 | `EMAIL_FROM` | No | Sender on a domain verified in Resend, as `you@your-domain` or `Opiniated <you@your-domain>`. Required with the API key. |
+| `PAYSTACK_SECRET_KEY` | Required to verify banks and send transfers | Server only. Never expose it to the browser or store it in MongoDB. |
+| `PAYSTACK_PUBLIC_KEY` | No | Stored for the Paystack account. Transfers do not use it in the browser. |
+| `PAYSTACK_BASE_URL` | No | Defaults to `https://api.paystack.co`. |
+| `PAYSTACK_TRANSFERS_ENABLED` | No | Must be `true` before an admin can submit a batch. Defaults off. |
+| `PAYSTACK_LIVE_CONFIRMED` | Required for live keys | Must be `true` before a live secret key can submit a batch. Test keys do not need it. |
+| `PAYOUT_NGN_PER_USD` | No | Optional display hint. Automatic batches do not use it. An administrator saves an expiring naira-per-dollar rate in payout admin. |
+| `PAYOUT_KOBO_PER_POINT` | Required unless the ledger is already NGN kobo or OPN has `PAYOUT_NGN_PER_USD` | Integer kobo paid for one reward unit. For OPN it must match `PAYOUT_NGN_PER_USD` when both are set. |
+| `PAYOUT_MIN_KOBO` | No | Extra operator minimum in kobo. Defaults to `10000` (₦100). Paystack’s Nigeria minimum of 5000 kobo also applies. |
+| `PAYOUT_FEE_BUFFER_KOBO` | No | Extra kobo required per transfer on top of the estimated Paystack fee. Defaults to `0`. |
+| `ADMIN_EMAILS` | Required for payout admin | Comma-separated account emails. An empty list leaves the admin pages closed. |
+| `CRON_SECRET` | Required before the payout cron runs | Bearer secret for `GET /api/cron/payouts`. At least 16 characters. A missing or wrong secret returns 401. |
 
 Do not commit `.env`.
+
+## Paystack withdrawals
+
+Official references:
+
+- Bulk transfers: <https://paystack.com/docs/transfers/bulk-transfers/>
+- Transfer recipients: <https://paystack.com/docs/transfers/creating-transfer-recipients/>
+- Transfer lifecycle: <https://paystack.com/docs/transfers/how-transfers-work/>
+- Webhooks: <https://paystack.com/docs/payments/webhooks/>
+
+Webhook URL: `https://<your-host>/api/paystack/webhook`. Paystack signs the raw body with HMAC SHA512 using the secret key and sends it as `x-paystack-signature`. There is no separate webhook secret.
+
+In the Paystack dashboard:
+
+1. Use test keys until the reservation, webhook, and reconciliation paths have been checked.
+2. Set the webhook URL above.
+3. Fund the Paystack balance. Bulk transfers spend that balance. Survey callbacks do not add to it.
+4. Paystack’s current bulk-transfer docs say OTP approval must be disabled. This app does not call the disable-OTP endpoint. Confirm that requirement and turn it off in the dashboard only after the business authorizes it.
+5. Set `PAYSTACK_TRANSFERS_ENABLED=true` only when a scheduled batch, or an administrator, should be able to submit transfers. A live secret key also needs `PAYSTACK_LIVE_CONFIRMED=true`. The schedule stays paused until an administrator allows batches.
+
+The admin page is `/admin/payouts`. It is limited to emails in `ADMIN_EMAILS`. Users cannot request a withdrawal. A scheduled job reserves eligible OPN into a batch of at most 100, then submits that saved batch only when transfers are enabled and submissions are not paused. One Paystack call is made per cron run, with at least five seconds before the next. A queued response is not treated as paid. Paid, failed, and reversed states come from the verified transfer. An uncertain response is not retried with a new reference.
+
+Vercel cron calls `GET /api/cron/payouts` once a day (`vercel.json`). That heartbeat is not the business interval. The database schedule defaults to 7 days, starts paused, and uses a $5.00 (500 cent) threshold. An administrator turns it on, sets the interval and threshold, and saves a whole-naira-per-dollar rate with an expiry of at most 30 days. The job refuses to price a batch from `PAYOUT_NGN_PER_USD` or from an expired rate. Each payout stores the rate and the time it took effect. A later rate does not reprice a reserved payout. The full spendable balance is reserved once it qualifies. Amounts below the threshold stay untouched. Kobo is `OPN × naira per dollar`, with no fractional remainder.
+
+The funding check estimates Nigeria transfer fees (₦10, ₦25, or ₦50) and ₦50 stamp duty on transfers of ₦10,000 or more, plus `PAYOUT_FEE_BUFFER_KOBO`. That estimate is not a Paystack quote. Fees are paid from the Paystack balance, not deducted from the user.
+
+`REWARD_CURRENCY_CODE=NGN` with `REWARD_MINOR_UNIT_FACTOR=100` already stores kobo, so the payout rate is 1. Automatic enrollment runs only for OPN. OPN is pegged at 100 OPN = $1.00. The app does not choose the naira rate.
 
 ## Reward units
 
@@ -74,10 +112,11 @@ BitLabs `value` is the user reward in the app currency configured under BitLabs 
 
 Opiniated parses `value` into an integer:
 
-- `REWARD_MINOR_UNIT_FACTOR=1` and `REWARD_CURRENCY_CODE=PTS` stores `120` as 120 Opiniated Points and shows `120 PTS`. There is no cash conversion in that configuration, and the balance cannot be withdrawn.
+- `REWARD_MINOR_UNIT_FACTOR=1` and `REWARD_CURRENCY_CODE=PTS` stores `120` as 120 points and shows `120 PTS`.
+- `REWARD_MINOR_UNIT_FACTOR=100` and `REWARD_CURRENCY_CODE=OPN` stores a provider dollar amount as OPN: `1.00` becomes 100 OPN (`$1.00`) and `0.75` becomes 75 OPN (`$0.75`).
 - `REWARD_MINOR_UNIT_FACTOR=100` and `REWARD_CURRENCY_CODE=USD` stores `1.20` as 120 cents and shows `$1.20`.
 
-Confirm the factor against your BitLabs currency settings before presenting balances as cash. A credited balance is not a withdrawal.
+Confirm the factor against your BitLabs currency settings before presenting balances as cash. A credited balance is not a completed payout.
 
 Reversals reduce the available balance down to zero. Any amount that cannot be collected is stored on the reversal as `shortfallUnits`. Historical transactions are not deleted.
 

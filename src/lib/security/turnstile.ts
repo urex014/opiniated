@@ -11,9 +11,9 @@ type SiteverifyResponse = {
 
 export function turnstileErrorMessage(reason: TurnstileReason): string {
   if (reason === "not_configured") {
-    return "Signup protection is not configured. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, and TURNSTILE_HOSTNAMES before creating accounts.";
+    return "The security check is not configured. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, and TURNSTILE_HOSTNAMES.";
   }
-  if (reason === "missing") return "Complete the security check before creating an account.";
+  if (reason === "missing") return "Complete the security check before continuing.";
   if (reason === "unavailable") return "The security check could not be completed. Try again in a moment.";
   return "The security check failed. Complete it again.";
 }

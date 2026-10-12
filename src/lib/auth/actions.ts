@@ -110,6 +110,14 @@ export async function loginAction(_state: FormState, formData: FormData): Promis
     return { error: "Too many sign-in attempts. Wait a few minutes and try again." };
   }
 
+  const env = readEnv();
+  const captcha = await verifyTurnstileToken(String(formData.get("cf-turnstile-response") ?? ""), ip, {
+    secret: env.turnstileSecret,
+    hostnames: env.turnstileHostnames,
+    action: "login",
+  });
+  if (!captcha.ok) return { error: turnstileErrorMessage(captcha.reason) };
+
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (!user || user.deletedAt || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
     return { error: "Email or password is incorrect." };
@@ -281,6 +289,7 @@ export async function deleteAccountAction(_state: FormState, formData: FormData)
     }),
     prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
     prisma.emailVerificationToken.deleteMany({ where: { userId: user.id } }),
+    prisma.payoutAccount.deleteMany({ where: { userId: user.id } }),
   ]);
   session.destroy();
   await session.save();

@@ -1,4 +1,4 @@
-const ALLOWED = ["/dashboard", "/surveys", "/rewards", "/activity", "/account"];
+const ALLOWED = ["/dashboard", "/surveys", "/rewards", "/payouts", "/activity", "/account", "/admin"];
 
 /** Keep post-login redirects on this site's account pages. */
 export function safeReturnPath(value: unknown): string {

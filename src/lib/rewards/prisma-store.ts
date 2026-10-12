@@ -49,7 +49,8 @@ async function applyCallback(event: ValidatedCallback): Promise<ApplyResult> {
 }
 
 async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
-  return prisma.$transaction(async (tx) => {
+  return prisma.$transaction(
+    async (tx) => {
       const existing = await tx.processedCallback.findUnique({
         where: {
           provider_providerTxId: { provider: PROVIDER, providerTxId: event.providerTxId },
@@ -85,6 +86,7 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
       const plan = planReward(
         {
           availableUnits: account.availableUnits,
+          reservedUnits: account.reservedUnits,
           lifetimeCreditedUnits: account.lifetimeCreditedUnits,
         },
         event.type,
@@ -115,6 +117,7 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
           where: { userId: user.id },
           data: {
             availableUnits: plan.next.availableUnits,
+            reservedUnits: plan.next.reservedUnits,
             lifetimeCreditedUnits: plan.next.lifetimeCreditedUnits,
           },
         });
@@ -138,7 +141,9 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
       });
       await writeLog(tx, event, "ACCEPTED");
       return { outcome: "ACCEPTED", availableUnits: plan.next.availableUnits };
-  });
+    },
+    { maxWait: 10_000, timeout: 20_000 },
+  );
 }
 
 function callbackRow(event: ValidatedCallback, outcome: "ACCEPTED" | "UNKNOWN_USER" | "UNSUPPORTED_EVENT") {

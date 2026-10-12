@@ -1,5 +1,6 @@
 import "server-only";
 import { getIronSession, type SessionOptions } from "iron-session";
+import { io } from "next/cache";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth/constants";
 import { requireAuthSecret } from "@/lib/env";
@@ -25,5 +26,7 @@ function options(): SessionOptions {
 }
 
 export async function getSession() {
+  // Unsealing a seal reads the clock. That call has to wait until request time.
+  await io();
   return getIronSession<SessionData>(await cookies(), options());
 }

@@ -27,13 +27,17 @@ export default async function DashboardPage() {
       <div className="mt-5">
         <RewardSummary
           availableUnits={summary.availableUnits}
+          reservedUnits={summary.reservedUnits}
           lifetimeCreditedUnits={summary.lifetimeCreditedUnits}
           currencyCode={env.rewardCurrencyCode}
           factor={env.rewardMinorUnitFactor}
         />
       </div>
       <p className="mt-3 text-xs leading-5 text-muted">
-        Rewards use {env.rewardCurrencyCode}. A balance here is a credited record, not a payout.
+        {env.rewardCurrencyCode === "OPN"
+          ? "100 OPN equal $1.00. Available OPN is included in the next payout batch once it reaches $5.00."
+          : `Rewards use ${env.rewardCurrencyCode}. Available points stay in your account until a payout batch includes them.`}{" "}
+        They are not paid out until Paystack confirms the transfer.
       </p>
 
       <section className="mt-8 rounded-lg bg-white px-3 py-4 sm:px-4">

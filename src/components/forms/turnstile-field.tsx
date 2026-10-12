@@ -19,7 +19,15 @@ declare global {
   }
 }
 
-export function TurnstileField({ siteKey, resetKey = 0 }: { siteKey: string | null; resetKey?: number }) {
+export function TurnstileField({
+  siteKey,
+  action,
+  resetKey = 0,
+}: {
+  siteKey: string | null;
+  action: "signup" | "login";
+  resetKey?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef("");
 
@@ -31,7 +39,7 @@ export function TurnstileField({ siteKey, resetKey = 0 }: { siteKey: string | nu
       if (cancelled || !ref.current || !window.turnstile || widgetId.current) return;
       widgetId.current = window.turnstile.render(ref.current, {
         sitekey: siteKey,
-        action: "signup",
+        action,
         "expired-callback": () => {
           if (widgetId.current && window.turnstile) window.turnstile.reset(widgetId.current);
         },
@@ -57,7 +65,7 @@ export function TurnstileField({ siteKey, resetKey = 0 }: { siteKey: string | nu
       if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);
       widgetId.current = "";
     };
-  }, [siteKey]);
+  }, [action, siteKey]);
 
   useEffect(() => {
     if (resetKey === 0 || !widgetId.current || !window.turnstile) return;
@@ -67,8 +75,8 @@ export function TurnstileField({ siteKey, resetKey = 0 }: { siteKey: string | nu
   if (!siteKey) {
     return (
       <p className="rounded-md border border-line bg-surface px-3 py-2 text-sm leading-5 text-muted">
-        Signup protection is not configured. Accounts cannot be created until NEXT_PUBLIC_TURNSTILE_SITE_KEY,
-        TURNSTILE_SECRET_KEY, and TURNSTILE_HOSTNAMES are set.
+        The security check is not configured. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, and
+        TURNSTILE_HOSTNAMES.
       </p>
     );
   }

@@ -29,7 +29,7 @@ export class MemoryRewardStore implements RewardStore {
   ensureAccount(userId: string): void {
     this.users.add(userId);
     if (!this.state.accounts.has(userId)) {
-      this.state.accounts.set(userId, { availableUnits: 0, lifetimeCreditedUnits: 0 });
+      this.state.accounts.set(userId, { availableUnits: 0, reservedUnits: 0, lifetimeCreditedUnits: 0 });
     }
   }
 
@@ -70,7 +70,7 @@ export class MemoryRewardStore implements RewardStore {
       this.state = next;
       return { outcome: "UNSUPPORTED_EVENT" };
     }
-    const account = next.accounts.get(event.userId) ?? { availableUnits: 0, lifetimeCreditedUnits: 0 };
+    const account = next.accounts.get(event.userId) ?? { availableUnits: 0, reservedUnits: 0, lifetimeCreditedUnits: 0 };
     const plan = planReward(account, event.type, event.amountUnits);
     next.processed.set(key, "ACCEPTED");
     if (event.type !== "SCREENOUT") {

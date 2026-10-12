@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth/constants";
 
-const PROTECTED = [/^\/dashboard(?:\/|$)/, /^\/surveys(?:\/|$)/, /^\/rewards(?:\/|$)/, /^\/activity(?:\/|$)/, /^\/account(?:\/|$)/];
+const PROTECTED = [/^\/dashboard(?:\/|$)/, /^\/surveys(?:\/|$)/, /^\/rewards(?:\/|$)/, /^\/payouts(?:\/|$)/, /^\/activity(?:\/|$)/, /^\/account(?:\/|$)/, /^\/admin(?:\/|$)/];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -22,5 +22,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/surveys/:path*", "/rewards/:path*", "/activity/:path*", "/account/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/surveys/:path*", "/rewards/:path*", "/payouts/:path*", "/activity/:path*", "/account/:path*", "/admin/:path*", "/login", "/register"],
 };

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalDraftNotice, LegalSection } from "@/components/legal/document";
+import { LegalSection } from "@/components/legal/document";
 import { SupportContact } from "@/components/legal/support-contact";
 import { POLICY_VERSIONS } from "@/lib/legal/versions";
 
@@ -12,7 +12,6 @@ export default function PrivacyPage() {
       <header>
         <h1 className="page-title">Privacy Policy</h1>
         <p className="mt-2 text-sm text-muted">Version {POLICY_VERSIONS.privacy}</p>
-        {/* <LegalDraftNotice /> */}
       </header>
 
       <LegalSection title="Who this notice covers">
@@ -62,7 +61,7 @@ export default function PrivacyPage() {
         </p>
         <p>Survey activity and the reward ledger are used to show your surveys, points, and transaction history, and to apply a provider reversal without crediting the same completion twice.</p>
         <p>Consent records are used to show which policy version you accepted and to ask again when a published version changes. A later acceptance is stored as its own row. It does not rewrite the registration acceptance.</p>
-        <p>Security checks, including Cloudflare Turnstile on registration when it is configured, are used to reject automated signups. The Turnstile token is sent to Cloudflare for verification and is not stored.</p>
+        <p>Security checks, including Cloudflare Turnstile on registration and sign-in when it is configured, are used to reject automated signups and sign-ins. The Turnstile token is sent to Cloudflare for verification and is not stored.</p>
       </LegalSection>
 
       <LegalSection title="Survey providers">
@@ -79,6 +78,23 @@ export default function PrivacyPage() {
           material, you will be asked to accept the new version before participating. A future integration would share
           the account id and the participation data needed to start a survey and credit a verified completion, for that
           purpose only.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Bank payouts">
+        <p>
+          If you save a Nigerian bank account for a withdrawal, the server sends the account number and bank code to
+          Paystack to confirm the account name and to create a transfer recipient. Opiniated then stores the bank name,
+          the bank code, the last four digits of the account number, the name Paystack returned, and Paystack’s
+          recipient code. The full account number is not kept after that recipient exists. Replacing the account runs
+          the same check again.
+        </p>
+        <p>
+          When a scheduled batch or an administrator submits a reserved payout, Paystack receives the amount in kobo, a
+          unique transfer reference, and the recipient code. Paystack later notifies this site of success, failure, or
+          reversal. The
+          Paystack secret key stays on the server and is not stored in the database. Deleting your account removes the
+          saved bank record. Withdrawal rows stay on the anonymized ledger so a payment can still be reconciled.
         </p>
       </LegalSection>
 
@@ -129,7 +145,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>A recorded lawful basis for each use, including consent, contract, and legitimate interests.</li>
           <li>An international transfer mechanism if account data is hosted outside the user’s country.</li>
-          <li>A subprocessor list and signed terms with BitLabs, Cloudflare, Resend, the host, and the database host.</li>
+          <li>A subprocessor list and signed terms with BitLabs, Cloudflare, Resend, Paystack, the host, and the database host.</li>
           <li>Whether a representative or data protection officer is required. None is appointed in the product.</li>
           <li>Age checks. The terms say you must be 18 or older. The application does not verify age.</li>
           <li>Cookies set by a survey provider after you leave this site. This application only sets the session cookie described above.</li>

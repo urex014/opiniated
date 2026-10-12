@@ -6,21 +6,25 @@ import { useState } from "react";
 import { logoutAction } from "@/lib/auth/actions";
 import { Logo } from "@/components/layout/logo";
 
-const items = [
+const baseItems = [
   { href: "/dashboard", label: "Overview" },
   { href: "/surveys", label: "Surveys" },
   { href: "/rewards", label: "Rewards" },
+  { href: "/payouts", label: "Payouts" },
   { href: "/activity", label: "Activity" },
   { href: "/account", label: "Account" },
 ];
 
 export function DashboardShell({
   user,
+  showAdmin = false,
   children,
 }: {
   user: { name: string | null; email: string };
+  showAdmin?: boolean;
   children: React.ReactNode;
 }) {
+  const items = showAdmin ? [...baseItems, { href: "/admin/payouts", label: "Payout admin" }] : baseItems;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const label = user.name || user.email;

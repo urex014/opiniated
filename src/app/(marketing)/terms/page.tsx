@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalDraftNotice, LegalSection } from "@/components/legal/document";
+import { LegalSection } from "@/components/legal/document";
 import { SupportContact } from "@/components/legal/support-contact";
 import { POLICY_VERSIONS } from "@/lib/legal/versions";
 
@@ -12,7 +12,6 @@ export default function TermsPage() {
       <header>
         <h1 className="page-title">Terms of Service</h1>
         <p className="mt-2 text-sm text-muted">Version {POLICY_VERSIONS.terms}</p>
-        {/* <LegalDraftNotice /> */}
       </header>
 
       <LegalSection title="Eligibility and accounts">
@@ -41,10 +40,13 @@ export default function TermsPage() {
           available balance, not below zero. The history of the original credit stays in the ledger.
         </p>
         <p>
-          The default balance is Opiniated Points (PTS): one point is one integer unit. This installation does not set
-          a cash value for a point and does not offer withdrawals or redemptions. If the operator configures a
-          different currency code and minor-unit factor, the rewards page states that conversion. Points are not a bank
-          balance, wages, or a promise that a survey will be available or that a completion will qualify.
+          The balance is Opiniated Points (OPN). 100 OPN equal $1.00. When the available balance reaches the payout
+          minimum, currently $5.00, and a verified Nigerian bank account has been saved for at least 24 hours, the next
+          scheduled batch reserves the full available balance. You do not request a withdrawal. Reservation is not a
+          payment. Paystack marks it paid only after the transfer succeeds. The naira amount uses the whole-naira price
+          per dollar recorded on that payout. Points below the minimum stay in the account. Processing depends on the
+          Paystack business balance and the bank. Points are not wages, and a survey is not guaranteed to be available
+          or to qualify.
         </p>
       </LegalSection>
 

@@ -24,13 +24,7 @@ export function RegisterForm({ siteKey, nextPath = "" }: { siteKey: string | nul
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [clientErrors, setClientErrors] = useState<FormState["fieldErrors"]>();
-  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
-  const turnstileWasPending = useRef(false);
-
-  useEffect(() => {
-    if (turnstileWasPending.current && !pending) setTurnstileResetKey((value) => value + 1);
-    turnstileWasPending.current = pending;
-  }, [pending]);
+  const turnstileResetKey = useTurnstileReset(pending);
 
   const liveConfirmError = confirmPasswordMessage({
     password,
@@ -120,7 +114,7 @@ export function RegisterForm({ siteKey, nextPath = "" }: { siteKey: string | nul
         </Link>
         .
       </ConsentChoice>
-      <TurnstileField siteKey={siteKey} resetKey={turnstileResetKey} />
+      <TurnstileField siteKey={siteKey} action="signup" resetKey={turnstileResetKey} />
       {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
       <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
         {pending ? "Creating account…" : "Create account"}
@@ -129,8 +123,9 @@ export function RegisterForm({ siteKey, nextPath = "" }: { siteKey: string | nul
   );
 }
 
-export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
+export function LoginForm({ siteKey, nextPath = "" }: { siteKey: string | null; nextPath?: string }) {
   const [state, action, pending] = useActionState(loginAction, initial);
+  const turnstileResetKey = useTurnstileReset(pending);
   return (
     <form action={action} className="grid gap-4" noValidate>
       <FormNote error={state.error} />
@@ -143,11 +138,22 @@ export function LoginForm({ nextPath = "" }: { nextPath?: string }) {
         visibilityLabel="password"
         error={state.fieldErrors?.password?.[0]}
       />
+      <TurnstileField siteKey={siteKey} action="login" resetKey={turnstileResetKey} />
       <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
         {pending ? "Signing in…" : "Log in"}
       </button>
     </form>
   );
+}
+
+function useTurnstileReset(pending: boolean): number {
+  const [resetKey, setResetKey] = useState(0);
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending) setResetKey((value) => value + 1);
+    wasPending.current = pending;
+  }, [pending]);
+  return resetKey;
 }
 
 export function ForgotForm() {

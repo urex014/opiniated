@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { RewardSummary } from "@/components/rewards/reward-summary";
 import { TransactionTable } from "@/components/rewards/transaction-table";
 import { requireUser } from "@/lib/auth/current-user";
@@ -24,11 +25,14 @@ export default async function RewardsPage() {
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
         Your balance is kept in {rewardUnitName(env.rewardCurrencyCode)}. Credits come from verified BitLabs callbacks.
         TheoremReach is not connected. {rewardUnitExplanation(env.rewardCurrencyCode, env.rewardMinorUnitFactor)} A
-        pending provider review can later reverse an approved credit. The balance never goes below zero.
+        pending provider review can later reverse an approved credit, but it cannot take points already reserved for a
+        payout. The balance never goes below zero. Automatic payouts are shown on the{" "}
+        <Link href="/payouts" className="text-brand">payouts page</Link>.
       </p>
       <div className="mt-5">
         <RewardSummary
           availableUnits={account?.availableUnits ?? 0}
+          reservedUnits={account?.reservedUnits ?? 0}
           lifetimeCreditedUnits={account?.lifetimeCreditedUnits ?? 0}
           currencyCode={env.rewardCurrencyCode}
           factor={env.rewardMinorUnitFactor}

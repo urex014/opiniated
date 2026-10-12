@@ -22,6 +22,8 @@ model User {
   resetTokens          PasswordResetToken[]
   verificationTokens   EmailVerificationToken[]
   consents             ConsentRecord[]
+  payoutAccount        PayoutAccount?
+  withdrawals          Withdrawal[]
 }
 
 model PasswordResetToken {
@@ -69,6 +71,7 @@ model RewardAccount {
   userId                String   @unique @db.ObjectId
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   availableUnits        Int      @default(0)
+  reservedUnits         Int      @default(0)
   lifetimeCreditedUnits Int      @default(0)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -139,4 +142,148 @@ model PostbackLog {
   createdAt    DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Verified Nigerian payout account. The full account number is not stored.
+model PayoutAccount {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @unique @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankCode      String
+  bankName      String
+  accountLast4  String
+  accountName   String
+  recipientCode String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Withdrawal {
+  id            String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String            @db.ObjectId
+  user          User              @relation(fields: [userId], references: [id])
+  points        Int
+  amountKobo    Int
+  /// Whole naira per dollar used to price this payout. Null on rows created before automatic batches.
+  nairaPerUsd   Int?
+  rateAt        DateTime?
+  /// Dollar value in cents. For OPN this equals points, because 1 OPN is one cent.
+  usdCents      Int?
+  currency      String            @default("NGN")
+  recipientCode String
+  reference     String            @unique
+  status        String
+  failureReason String?
+  transferCode  String?
+  batchId       String?           @db.ObjectId
+  batch         PayoutBatch?      @relation(fields: [batchId], references: [id])
+  attempt       Int               @default(1)
+  anomaly       String?
+  requestedAt   DateTime          @default(now())
+  reviewedAt    DateTime?
+  reviewedBy    String?           @db.ObjectId
+  processingAt  DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  attempts      TransferAttempt[]
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Every reference sent to Paystack, including attempts that were replaced.
+model TransferAttempt {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  withdrawalId  String     @db.ObjectId
+  withdrawal    Withdrawal @relation(fields: [withdrawalId], references: [id])
+  reference     String     @unique
+  transferCode  String?
+  status        String
+  batchId       String?    @db.ObjectId
+  failureReason String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([withdrawalId])
+}
+
+model PayoutBatch {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  status        String
+  transferCount Int
+  totalPoints   Int          @default(0)
+  totalKobo     Int          @default(0)
+  nairaPerUsd   Int?
+  rateAt        DateTime?
+  message       String?
+  currency      String       @default("NGN")
+  actorId       String?      @db.ObjectId
+  submittedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  withdrawals   Withdrawal[]
+
+  @@index([submittedAt])
+  @@index([status, createdAt])
+}
+
+model PayoutAudit {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  /// Null for the scheduled job, which has no user session.
+  actorId      String?  @db.ObjectId
+  action       String
+  withdrawalId String?  @db.ObjectId
+  batchId      String?  @db.ObjectId
+  detail       String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([withdrawalId])
+}
+
+/// One row per raw webhook body. processedAt stays empty until settlement finishes.
+model PaystackEvent {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  eventKey    String    @unique
+  event       String
+  reference   String?
+  note        String?
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([reference])
+}
+
+/// Single document that spaces bulk submissions by at least five seconds.
+model PayoutGate {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  key           String   @unique
+  nextAllowedAt DateTime
+}
+
+/// One row controls the automatic payout heartbeat. Created paused so a deploy does not reserve funds.
+model PayoutSchedule {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  key          String   @unique
+  intervalDays Int      @default(7)
+  minUsdCents  Int      @default(500)
+  nextRunAt    DateTime
+  paused       Boolean  @default(true)
+  lockedUntil  DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Immutable naira-per-dollar prices. A new row replaces the previous one for future payouts only.
+model PayoutFxPolicy {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  nairaPerUsd Int
+  effectiveAt DateTime
+  expiresAt   DateTime
+  actorId     String   @db.ObjectId
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
 }
