@@ -1,4 +1,4 @@
-import { rateLimit } from "@/lib/security/rate-limit";
+import { rateLimitStore } from "@/lib/risk/store";
 
 export const AUTH_LIMITS = {
   register: { limit: 8, windowMs: 15 * 60 * 1000 },
@@ -10,8 +10,9 @@ export const AUTH_LIMITS = {
 
 export type AuthLimitKind = keyof typeof AUTH_LIMITS;
 
-export function allowAuthAttempt(kind: AuthLimitKind, ip: string, subject = ""): boolean {
+export async function allowAuthAttempt(kind: AuthLimitKind, ip: string, subject = ""): Promise<boolean> {
   const policy = AUTH_LIMITS[kind];
   const key = subject ? `${kind}:${ip}:${subject}` : `${kind}:${ip}`;
-  return rateLimit(key, policy.limit, policy.windowMs);
+  const result = await rateLimitStore().consume(key, policy.limit, policy.windowMs);
+  return result.allowed;
 }

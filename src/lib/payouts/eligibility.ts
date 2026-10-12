@@ -4,9 +4,9 @@ import { pointsToKobo } from "@/lib/payouts/money";
  * Currency policy for automatic payouts.
  *
  * The ledger stores whole OPN. 100 OPN equal $1.00, so one OPN is one US cent.
- * BitLabs `value` is parsed with REWARD_MINOR_UNIT_FACTOR. With factor 100, a
- * provider dollar amount becomes that many OPN. This is the app's reward peg.
- * It is not a claim that BitLabs CPI (publisher revenue) is the same number.
+ * The provider user reward is parsed with REWARD_MINOR_UNIT_FACTOR. With factor
+ * 100, a provider dollar amount becomes that many OPN. This is the app's reward peg.
+ * It is not a claim that publisher revenue is the same number.
  *
  * A payout pays the full spendable confirmed balance once it is at least the
  * configured dollar threshold (default 500 cents). Balances below the threshold
@@ -41,6 +41,7 @@ export type EligibilityReason =
   | "rate_expired"
   | "below_paystack_min"
   | "above_paystack_max"
+  | "payout_review"
   | "invalid";
 
 export type EligibilityInput = {
@@ -56,6 +57,8 @@ export type EligibilityInput = {
   now: Date;
   minUsdCents: number;
   minimumKobo: number;
+  /** Open payout review. The balance stays; it is not reserved. */
+  payoutHeld?: boolean;
 };
 
 export type Eligibility =
@@ -64,6 +67,7 @@ export type Eligibility =
 
 export function evaluateEligibility(input: EligibilityInput): Eligibility {
   if (input.deletedAt) return { ok: false, reason: "deleted" };
+  if (input.payoutHeld) return { ok: false, reason: "payout_review" };
   if (input.currencyCode !== "OPN") return { ok: false, reason: "currency" };
   if (!input.recipientCode?.startsWith("RCP_")) return { ok: false, reason: "no_bank" };
   if (!input.accountUpdatedAt || input.now.getTime() - input.accountUpdatedAt.getTime() < BANK_HOLD_MS) {

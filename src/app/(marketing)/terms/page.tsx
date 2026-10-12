@@ -30,7 +30,7 @@ export default function TermsPage() {
       <LegalSection title="Surveys and rewards">
         <p>
           Survey availability, qualification, length, and the estimated reward come from the provider that supplies the
-          survey. In this version that provider is BitLabs, when the operator has configured it. TheoremReach is not
+          survey. In this version that provider is CPX Research, when the operator has configured it and turned it on. TheoremReach is not
           connected and does not supply surveys or callbacks here.
         </p>
         <p>
@@ -46,7 +46,8 @@ export default function TermsPage() {
           payment. Paystack marks it paid only after the transfer succeeds. The naira amount uses the whole-naira price
           per dollar recorded on that payout. Points below the minimum stay in the account. Processing depends on the
           Paystack business balance and the bank. Points are not wages, and a survey is not guaranteed to be available
-          or to qualify.
+          or to qualify. A payout can be paused for review. The balance stays in the account until the review is
+          released, and a release does not pay the same balance twice.
         </p>
       </LegalSection>
 

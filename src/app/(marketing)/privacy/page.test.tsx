@@ -8,11 +8,11 @@ describe("public policy pages", () => {
   it("publishes the privacy policy with provider and contact language", () => {
     const html = renderToStaticMarkup(<PrivacyPage />);
     expect(html).toContain("Privacy Policy");
-    expect(html).toContain("Version 2026-10-11.5");
+    expect(html).toContain("Version 2026-10-12.2");
     expect(html).toContain("Paystack");
     expect(html).toContain("Resend");
     expect(html).toContain("TheoremReach is not enabled");
-    expect(html).toContain("BitLabs");
+    expect(html).toContain("CPX Research");
     expect(html).toContain("opiniated_session");
     expect(html).toContain("Needs review");
     expect(html).toContain("sign-in");
@@ -22,7 +22,7 @@ describe("public policy pages", () => {
   it("publishes the terms with reward and fraud rules", () => {
     const html = renderToStaticMarkup(<TermsPage />);
     expect(html).toContain("Terms of Service");
-    expect(html).toContain("Version 2026-10-11.3");
+    expect(html).toContain("Version 2026-10-12.2");
     expect(html).toContain("100 OPN equal $1.00");
     expect(html).toContain("Paystack marks it paid only after the transfer succeeds");
     expect(html).toContain("One person, one account");

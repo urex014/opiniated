@@ -4,7 +4,6 @@ import { prisma } from "@/lib/db";
 import { planReward } from "@/lib/rewards/planner";
 import type { ApplyResult, RewardStore, ValidatedCallback } from "@/lib/rewards/types";
 
-const PROVIDER = "bitlabs";
 const MAX_ATTEMPTS = 3;
 
 export function createPrismaRewardStore(): RewardStore {
@@ -13,7 +12,7 @@ export function createPrismaRewardStore(): RewardStore {
     async recordRejection(entry) {
       await prisma.postbackLog.create({
         data: {
-          provider: PROVIDER,
+          provider: entry.provider,
           providerTxId: entry.providerTxId,
           outcome: entry.outcome,
           userId: entry.userId,
@@ -32,7 +31,7 @@ async function applyCallback(event: ValidatedCallback): Promise<ApplyResult> {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002" && isCallbackConflict(error)) {
         await prisma.postbackLog.create({
           data: {
-            provider: PROVIDER,
+            provider: event.provider,
             providerTxId: event.providerTxId,
             outcome: "DUPLICATE",
             userId: event.userId,
@@ -53,7 +52,7 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
     async (tx) => {
       const existing = await tx.processedCallback.findUnique({
         where: {
-          provider_providerTxId: { provider: PROVIDER, providerTxId: event.providerTxId },
+          provider_providerTxId: { provider: event.provider, providerTxId: event.providerTxId },
         },
       });
       if (existing) {
@@ -98,7 +97,7 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
         const created = await tx.rewardTransaction.create({
           data: {
             userId: user.id,
-            provider: PROVIDER,
+            provider: event.provider,
             providerTxId: event.providerTxId,
             type: event.type,
             amountUnits: plan.amountUnits,
@@ -127,7 +126,7 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
         await tx.surveyActivity.create({
           data: {
             userId: user.id,
-            provider: PROVIDER,
+            provider: event.provider,
             surveyId: event.surveyId,
             status: activityStatus(event.type),
             completedAt: new Date(),
@@ -148,7 +147,7 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
 
 function callbackRow(event: ValidatedCallback, outcome: "ACCEPTED" | "UNKNOWN_USER" | "UNSUPPORTED_EVENT") {
   return {
-    provider: PROVIDER,
+    provider: event.provider,
     providerTxId: event.providerTxId,
     outcome,
     userId: event.userId,
@@ -163,7 +162,7 @@ function writeLog(
 ) {
   return tx.postbackLog.create({
     data: {
-      provider: PROVIDER,
+      provider: event.provider,
       providerTxId: event.providerTxId,
       outcome,
       userId: event.userId,

@@ -12,7 +12,7 @@ export function decimalPlaces(factor: number): number {
 }
 
 /**
- * Convert a BitLabs decimal string into integer minor units.
+ * Convert a provider decimal string into integer minor units.
  * `1.20` with factor 100 becomes 120. `120` with factor 1 stays 120.
  * Returns null when the value is not a plain decimal or overflows.
  */

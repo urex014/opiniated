@@ -70,6 +70,7 @@ type BatchRow = {
   totalPoints: number;
   nairaPerUsd: number | null;
   rateAt: Date | null;
+  createdAt: Date;
 };
 
 export class MemoryPayoutRepository implements PayoutRepository {
@@ -79,7 +80,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
   private ledger: LedgerRow[] = [];
   private batches: BatchRow[] = [];
   private events = new Map<string, { event: string; reference: string | null; processedAt: Date | null; note: string | null }>();
-  private audits: { action: string; withdrawalId?: string }[] = [];
+  private audits: { action: string; actorId?: string | null; withdrawalId?: string; batchId?: string; detail?: string }[] = [];
   private references = new Set<string>();
   private gate = new Date(0);
   private sequence = 0;
@@ -113,6 +114,10 @@ export class MemoryPayoutRepository implements PayoutRepository {
 
   auditCount(action: string): number {
     return this.audits.filter((row) => row.action === action).length;
+  }
+
+  auditsFor(action: string): { action: string; actorId?: string | null; withdrawalId?: string; batchId?: string; detail?: string }[] {
+    return this.audits.filter((row) => row.action === action);
   }
 
   batchRows(): { id: string; status: string; transferCount: number; withdrawalIds: string[] }[] {
@@ -371,6 +376,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
         totalPoints: 0,
         nairaPerUsd: null,
         rateAt: null,
+        createdAt: input.submittedAt,
       });
       for (const withdrawalId of input.withdrawalIds) {
         const row = this.withdrawals.find((item) => item.id === withdrawalId);
@@ -388,6 +394,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
     nairaPerUsd: number | null;
     rateAt: Date | null;
     withdrawalIds: string[];
+    actorId?: string | null;
   }) {
     return this.exclusive(() => {
       const rows = input.withdrawalIds.map((id) => this.withdrawals.find((item) => item.id === id));
@@ -405,12 +412,34 @@ export class MemoryPayoutRepository implements PayoutRepository {
         totalPoints: input.totalPoints,
         nairaPerUsd: input.nairaPerUsd,
         rateAt: input.rateAt,
+        createdAt: new Date(),
       });
       for (const row of rows) {
         if (row) row.batchId = id;
       }
-      this.audits.push({ action: "batch.enrolled" });
+      this.audits.push({
+        action: input.actorId ? "batch.created" : "batch.enrolled",
+        actorId: input.actorId ?? null,
+        batchId: id,
+        detail: `${input.transferCount} payouts, ${input.totalKobo} kobo`,
+      });
       return { ok: true as const, id };
+    });
+  }
+
+  async getBatch(id: string) {
+    return this.exclusive(() => {
+      const batch = this.batches.find((item) => item.id === id);
+      if (!batch) return null;
+      return {
+        id: batch.id,
+        status: batch.status,
+        transferCount: batch.transferCount,
+        totalKobo: batch.totalKobo,
+        totalPoints: batch.totalPoints,
+        withdrawalIds: this.withdrawals.filter((row) => row.batchId === batch.id).map((row) => row.id),
+        createdAt: batch.createdAt,
+      };
     });
   }
 
@@ -459,6 +488,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
     currency: string | null;
     transferCode: string | null;
     at: Date;
+    actorId?: string | null;
   }): Promise<SettleResult> {
     return this.exclusive(() => {
       const attempt = this.attempts.find((item) => item.reference === input.reference);
@@ -498,12 +528,14 @@ export class MemoryPayoutRepository implements PayoutRepository {
           attempt.transferCode = input.transferCode;
         }
         this.refreshBatch(row.batchId);
+        this.audits.push({ action: "withdrawal.paid", actorId: input.actorId ?? null, withdrawalId: row.id, batchId: row.batchId ?? undefined, detail: input.reference });
         return "paid";
       }
       if (decision.type === "fail") {
         if (!this.release(row, input.at, decision.reason, "FAILED")) return "anomaly";
         if (attempt) attempt.status = "FAILED";
         this.refreshBatch(row.batchId);
+        this.audits.push({ action: "withdrawal.failed", actorId: input.actorId ?? null, withdrawalId: row.id, batchId: row.batchId ?? undefined, detail: input.reference });
         return "failed";
       }
       if (decision.type === "reverse-paid") {
@@ -523,6 +555,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
         });
         if (attempt) attempt.status = "REVERSED";
         this.refreshBatch(row.batchId);
+        this.audits.push({ action: "withdrawal.reversed", actorId: input.actorId ?? null, withdrawalId: row.id, batchId: row.batchId ?? undefined, detail: input.reference });
         return "reversed";
       }
       if (user.reservedUnits < row.points || row.status !== "PROCESSING") return "anomaly";
@@ -532,6 +565,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
       this.markLedger(row.reference, "REVERSED", 0);
       if (attempt) attempt.status = "REVERSED";
       this.refreshBatch(row.batchId);
+      this.audits.push({ action: "withdrawal.reversed", actorId: input.actorId ?? null, withdrawalId: row.id, batchId: row.batchId ?? undefined, detail: input.reference });
       return "reversed";
     });
   }
@@ -544,6 +578,7 @@ export class MemoryPayoutRepository implements PayoutRepository {
       const attempt = this.attempts.find((item) => item.reference === input.reference);
       if (attempt) attempt.status = "FAILED";
       this.refreshBatch(row.batchId);
+      this.audits.push({ action: "withdrawal.failed", actorId: null, withdrawalId: row.id, batchId: row.batchId ?? undefined, detail: input.reference });
       return "failed";
     });
   }
@@ -640,7 +675,13 @@ export class MemoryPayoutRepository implements PayoutRepository {
 
   async recordAudit(input: { actorId: string | null; action: string; withdrawalId?: string; batchId?: string; detail?: string }) {
     return this.exclusive(() => {
-      this.audits.push({ action: input.action, withdrawalId: input.withdrawalId });
+      this.audits.push({
+        action: input.action,
+        actorId: input.actorId,
+        withdrawalId: input.withdrawalId,
+        batchId: input.batchId,
+        detail: input.detail,
+      });
     });
   }
 

@@ -6,7 +6,7 @@ import { EmptySurveys, SurveyError } from "@/components/surveys/survey-states";
 import { TransactionTable } from "@/components/rewards/transaction-table";
 import { requireUser } from "@/lib/auth/current-user";
 import { readEnv } from "@/lib/env";
-import { toPublicSurveys } from "@/lib/bitlabs/normalize";
+import { toPublicSurveys } from "@/lib/survey-providers/types";
 import { getRewardSummary } from "@/lib/rewards/queries";
 import { loadSurveysForUser } from "@/lib/surveys/load";
 
@@ -22,7 +22,7 @@ export default async function DashboardPage() {
     <>
       <h1 className="page-title">{user.name ? `Hello, ${user.name}` : "Your surveys"}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-        Surveys matched to this account, and the rewards BitLabs has already confirmed.
+        Surveys matched to this account, and rewards a verified callback has already confirmed.
       </p>
       <div className="mt-5">
         <RewardSummary

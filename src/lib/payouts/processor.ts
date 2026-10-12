@@ -11,10 +11,23 @@ export type BatchSubmitResult =
   | { ok: true; code: "queued"; count: number; batchId: string }
   | {
       ok: false;
-      code: "disabled" | "not_configured" | "live_not_confirmed" | "empty" | "insufficient_funds" | "interval" | "uncertain" | "rejected";
+      code:
+        | "disabled"
+        | "not_configured"
+        | "live_not_confirmed"
+        | "empty"
+        | "insufficient_funds"
+        | "interval"
+        | "uncertain"
+        | "rejected"
+        | "forbidden"
+        | "confirmation_mismatch"
+        | "not_releasable";
       message: string;
       batchId?: string;
     };
+
+export type ReleaseConfirm = { batchId: string; confirmCount: number; confirmKobo: number };
 
 export type BatchDeps = {
   repo: PayoutRepository;
@@ -39,8 +52,9 @@ export function submitApprovedBatch(deps: BatchDeps): Promise<BatchSubmitResult>
   return run;
 }
 
-export async function submitPendingBatch(deps: BatchDeps): Promise<BatchSubmitResult> {
-  const run = chain.then(() => submitPendingOnce(deps));
+/** Sends one reviewed batch. A queued Paystack response is not a payment. */
+export function submitConfirmedBatch(deps: BatchDeps, confirm: ReleaseConfirm): Promise<BatchSubmitResult> {
+  const run = chain.then(() => submitConfirmedOnce(deps, confirm));
   chain = run.then(
     () => undefined,
     () => undefined,
@@ -57,19 +71,43 @@ async function submitOnce(deps: BatchDeps): Promise<BatchSubmitResult> {
   return sendClaimed(deps, eligible, null);
 }
 
-async function submitPendingOnce(deps: BatchDeps): Promise<BatchSubmitResult> {
-  const blocked = configBlock(deps);
-  if (blocked) return blocked;
-  const pending = await deps.repo.oldestPendingBatch();
-  if (!pending) return { ok: false, code: "empty", message: "There is no pending payout batch." };
+async function submitConfirmedOnce(deps: BatchDeps, confirm: ReleaseConfirm): Promise<BatchSubmitResult> {
+  const batch = await deps.repo.getBatch(confirm.batchId);
+  if (!batch) return { ok: false, code: "not_releasable", message: "That payout batch was not found.", batchId: confirm.batchId };
+  if (batch.status !== "PENDING") {
+    return { ok: false, code: "not_releasable", message: "This batch is not waiting for release.", batchId: batch.id };
+  }
   const rows: WithdrawalSnapshot[] = [];
-  for (const id of pending.withdrawalIds) {
+  for (const id of batch.withdrawalIds) {
     const row = await deps.repo.getById(id);
     if (row && row.status === "APPROVED") rows.push(row);
   }
-  const eligible = rows.filter(canSend).slice(0, BATCH_LIMIT);
-  if (eligible.length === 0) return { ok: false, code: "empty", message: "The pending batch has no transfers ready to send." };
-  return sendClaimed(deps, eligible, pending.id);
+  const eligible = rows.filter(canSend);
+  const totalKobo = eligible.reduce((sum, row) => sum + row.amountKobo, 0);
+  const confirmed =
+    Number.isInteger(confirm.confirmCount) &&
+    Number.isInteger(confirm.confirmKobo) &&
+    confirm.confirmCount === eligible.length &&
+    confirm.confirmKobo === totalKobo &&
+    eligible.length > 0;
+  if (!confirmed) {
+    await deps.repo.recordAudit({
+      actorId: deps.actorId,
+      action: "batch.release_rejected",
+      batchId: batch.id,
+      detail: `confirmed ${confirm.confirmCount} recipients and ${confirm.confirmKobo} kobo; batch has ${eligible.length} and ${totalKobo} kobo`,
+    });
+    return { ok: false, code: "confirmation_mismatch", message: "The confirmation does not match this batch. Nothing was sent.", batchId: batch.id };
+  }
+  const blocked = configBlock(deps);
+  if (blocked) return { ...blocked, batchId: batch.id };
+  await deps.repo.recordAudit({
+    actorId: deps.actorId,
+    action: "batch.reviewed",
+    batchId: batch.id,
+    detail: `${eligible.length} recipients, ${totalKobo} kobo`,
+  });
+  return sendClaimed(deps, eligible, batch.id);
 }
 
 function configBlock(deps: BatchDeps): BatchSubmitResult | null {
@@ -133,6 +171,7 @@ async function sendClaimed(deps: BatchDeps, eligible: WithdrawalSnapshot[], exis
   for (const item of result.items) {
     if (item.transferCode) await deps.repo.setTransferCode(item.reference, item.transferCode);
   }
+  // A bulk response can report success while the transfer is still queued. Paid waits for verify or a webhook.
   await deps.repo.updateBatch(batchId, { status: "QUEUED", message: result.message });
   return { ok: true, code: "queued", count: claimed.length, batchId };
 }
@@ -161,6 +200,10 @@ async function reconcileRejected(deps: BatchDeps, claimed: WithdrawalSnapshot[])
   }
 }
 
-function canSend(row: WithdrawalSnapshot): boolean {
+export function isSendablePayout(row: { reference: string; recipientCode: string; amountKobo: number; currency: string }): boolean {
   return isTransferReference(row.reference) && row.recipientCode.startsWith("RCP_") && Number.isInteger(row.amountKobo) && row.amountKobo > 0 && row.currency === "NGN";
+}
+
+function canSend(row: WithdrawalSnapshot): boolean {
+  return isSendablePayout(row);
 }

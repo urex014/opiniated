@@ -1,7 +1,5 @@
 import type { PaystackClient } from "@/lib/paystack/client";
-import { submitApprovedBatch, submitPendingBatch, type BatchSubmitResult } from "@/lib/payouts/processor";
 import type { PayoutRepository } from "@/lib/payouts/repository";
-import type { PaystackKeyMode } from "@/lib/paystack/mode";
 
 export type AdminResult = { error?: string; message?: string };
 
@@ -15,37 +13,6 @@ export async function rejectWithdrawal(repo: PayoutRepository, id: string, actor
   const result = await repo.review({ id, actorId, decision: "reject", reason: reason.trim() || "Rejected before the transfer was sent.", at });
   if (!result.ok) return { error: result.code === "not_allowed" ? "This request can no longer be rejected." : "The withdrawal was not found." };
   return { message: "Withdrawal rejected and the reserved points were released." };
-}
-
-export async function submitBatch(input: {
-  repo: PayoutRepository;
-  client: PaystackClient;
-  actorId: string;
-  now: Date;
-  transfersEnabled: boolean;
-  liveConfirmed: boolean;
-  keyMode: PaystackKeyMode;
-  feeBufferKobo: number;
-}): Promise<BatchSubmitResult> {
-  const deps = {
-    repo: input.repo,
-    client: input.client,
-    now: input.now,
-    transfersEnabled: input.transfersEnabled,
-    liveConfirmed: input.liveConfirmed,
-    keyMode: input.keyMode,
-    feeBufferKobo: input.feeBufferKobo,
-    actorId: input.actorId,
-  };
-  const pending = await submitPendingBatch(deps);
-  const result = pending.code === "empty" ? await submitApprovedBatch(deps) : pending;
-  await input.repo.recordAudit({
-    actorId: input.actorId,
-    action: "batch.reconcile",
-    batchId: "batchId" in result ? result.batchId : undefined,
-    detail: result.ok ? `Queued ${result.count}` : result.message,
-  });
-  return result;
 }
 
 export async function reconcileWithdrawal(repo: PayoutRepository, client: PaystackClient, id: string, actorId: string, at: Date): Promise<AdminResult> {
@@ -72,6 +39,7 @@ export async function reconcileWithdrawal(repo: PayoutRepository, client: Paysta
     currency: verified.currency,
     transferCode: verified.transferCode,
     at,
+    actorId,
   });
   if (settled === "paid") return { message: "Paystack confirmed the transfer. The withdrawal is paid." };
   if (settled === "failed") return { message: "Paystack reported a failure. The reserved points were released." };

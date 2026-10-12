@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { PaystackClient } from "@/lib/paystack/client";
+import { prepareAdminBatch } from "@/lib/payouts/admin-batch";
 import { deriveBatchStatus } from "@/lib/payouts/batch-status";
 import { cronAuthorized } from "@/lib/payouts/cron-auth";
 import { runAutoPayout } from "@/lib/payouts/cycle";
@@ -69,21 +70,21 @@ function storeFor(repo: MemoryPayoutRepository, people: PayoutCandidate[]): Memo
   return store;
 }
 
-function client(bulk: PaystackClient["bulkTransfer"]): PaystackClient {
-  const unexpected = async () => {
-    throw new Error("unexpected Paystack call");
-  };
-  return {
-    listBanks: unexpected,
-    resolveAccount: unexpected,
-    createRecipient: unexpected,
-    verifyTransfer: unexpected,
-    getBalance: async () => ({ ok: true, balances: [{ currency: "NGN", amount: 2_000_000_000 }] }),
-    bulkTransfer: bulk,
-  };
+async function prepare(repo: MemoryPayoutRepository, store: MemoryAutoPayoutStore) {
+  return prepareAdminBatch({
+    admin: true,
+    store,
+    repo,
+    now,
+    currencyCode: "OPN",
+    minimumKobo: 10_000,
+    minUsdCents: store.minUsdCents,
+    actorId: "admin-1",
+    referenceFor: refFor,
+  });
 }
 
-async function cycle(repo: MemoryPayoutRepository, store: MemoryAutoPayoutStore, paystack: PaystackClient | null = null, transfersEnabled = false) {
+async function scheduled(repo: MemoryPayoutRepository, store: MemoryAutoPayoutStore, paystack: PaystackClient | null) {
   return runAutoPayout({
     store,
     repo,
@@ -91,8 +92,8 @@ async function cycle(repo: MemoryPayoutRepository, store: MemoryAutoPayoutStore,
     now,
     currencyCode: "OPN",
     minimumKobo: 10_000,
-    transfersEnabled,
-    liveConfirmed: false,
+    transfersEnabled: true,
+    liveConfirmed: true,
     keyMode: "test",
     feeBufferKobo: 0,
     referenceFor: refFor,
@@ -117,6 +118,28 @@ describe("automatic payout eligibility", () => {
     expect(eligibility({ rateExpiresAt: now })).toMatchObject({ ok: false, reason: "rate_expired" });
     expect(eligibility({ nairaPerUsd: 1, availableUnits: 500 })).toMatchObject({ ok: false, reason: "below_paystack_min" });
     expect(eligibility({ availableUnits: 700_000 })).toMatchObject({ ok: false, reason: "above_paystack_max" });
+    expect(eligibility({ payoutHeld: true })).toMatchObject({ ok: false, reason: "payout_review" });
+  });
+
+  it("does not reserve a balance while a review is open, then reserves it once after release", async () => {
+    const repo = new MemoryPayoutRepository();
+    seed(repo, "user-1", 500);
+    const input = {
+      repo,
+      currencyCode: "OPN",
+      nairaPerUsd: 1500,
+      rateAt: fx.effectiveAt,
+      rateExpiresAt: fx.expiresAt,
+      now,
+      minUsdCents: 500,
+      minimumKobo: 10_000,
+      referenceFor: refFor,
+    };
+    expect(await enrollEligible({ ...input, candidates: [candidate({ payoutHeld: true })] })).toHaveLength(0);
+    expect(repo.balanceOf("user-1")).toEqual({ availableUnits: 500, reservedUnits: 0 });
+    expect(await enrollEligible({ ...input, candidates: [candidate()] })).toHaveLength(1);
+    expect(await enrollEligible({ ...input, candidates: [candidate({ openWithdrawal: true })] })).toHaveLength(0);
+    expect(repo.balanceOf("user-1")).toEqual({ availableUnits: 500, reservedUnits: 500 });
   });
 
   it("uses the required payout sentences", () => {
@@ -147,31 +170,32 @@ describe("automatic payout eligibility", () => {
   });
 });
 
-describe("scheduled payout batches", () => {
+describe("admin payout batches", () => {
   it("reserves $5 once, skips a repeated run, and keeps an expired rate from pricing anyone", async () => {
     const repo = new MemoryPayoutRepository();
     seed(repo, "user-1", 500);
     const store = storeFor(repo, [candidate()]);
-    expect((await cycle(repo, store)).status).toBe("enrolled");
+    expect((await prepare(repo, store)).status).toBe("enrolled");
     expect(repo.balanceOf("user-1")).toEqual({ availableUnits: 500, reservedUnits: 500 });
     expect(repo.batchRows()).toHaveLength(1);
+    expect(repo.auditsFor("batch.created")[0]?.actorId).toBe("admin-1");
     expect((await repo.listForUser("user-1"))[0]?.nairaPerUsd).toBe(1500);
     store.policies = [{ ...fx, nairaPerUsd: 1600 }];
-    expect((await cycle(repo, store)).status).toBe("waiting");
+    expect((await prepare(repo, store)).status).toBe("idle");
     expect(repo.batchRows()).toHaveLength(1);
     expect((await repo.listForUser("user-1"))[0]?.nairaPerUsd).toBe(1500);
 
     const poor = new MemoryPayoutRepository();
     seed(poor, "user-1", 499);
     const poorStore = storeFor(poor, [candidate({ availableUnits: 499 })]);
-    expect((await cycle(poor, poorStore)).enrolled).toBe(0);
+    expect((await prepare(poor, poorStore)).enrolled).toBe(0);
     expect(poor.balanceOf("user-1").reservedUnits).toBe(0);
 
     const unpriced = new MemoryPayoutRepository();
     seed(unpriced, "user-1", 800);
     const unpricedStore = storeFor(unpriced, [candidate({ availableUnits: 800 })]);
     unpricedStore.policies = [{ ...fx, expiresAt: now }];
-    expect((await cycle(unpriced, unpricedStore)).status).toBe("no_rate");
+    expect((await prepare(unpriced, unpricedStore)).status).toBe("no_rate");
     expect(unpriced.balanceOf("user-1").reservedUnits).toBe(0);
   });
 
@@ -179,7 +203,7 @@ describe("scheduled payout batches", () => {
     const repo = new MemoryPayoutRepository();
     seed(repo, "user-1", 800);
     const store = storeFor(repo, [candidate({ availableUnits: 800 })]);
-    const [first, second] = await Promise.all([cycle(repo, store), cycle(repo, store)]);
+    const [first, second] = await Promise.all([prepare(repo, store), prepare(repo, store)]);
     expect([first.status, second.status].sort()).toEqual(["enrolled", "locked"]);
     expect(repo.balanceOf("user-1").reservedUnits).toBe(800);
     const again = await enrollEligible({
@@ -198,7 +222,7 @@ describe("scheduled payout batches", () => {
     expect(repo.balanceOf("user-1").reservedUnits).toBe(800);
   });
 
-  it("splits a batch at 100 and does not send a second transfer after a timeout", async () => {
+  it("splits a batch at 100 and leaves the scheduled job unable to send", async () => {
     const repo = new MemoryPayoutRepository();
     const people: PayoutCandidate[] = [];
     for (let index = 1; index <= 101; index += 1) {
@@ -206,44 +230,47 @@ describe("scheduled payout batches", () => {
       people.push(candidate({ userId: `user-${index}`, email: `user-${index}@example.com`, recipientCode: `RCP_user-${index}` }));
     }
     const store = storeFor(repo, people);
-    expect((await cycle(repo, store)).enrolled).toBe(100);
+    expect((await prepare(repo, store)).enrolled).toBe(100);
     expect(repo.balanceOf("user-101").reservedUnits).toBe(0);
-    expect((await cycle(repo, store)).enrolled).toBe(1);
+    expect((await prepare(repo, store)).enrolled).toBe(1);
     expect(repo.batchRows()).toHaveLength(2);
     expect(repo.balanceOf("user-101").reservedUnits).toBe(500);
 
     const one = new MemoryPayoutRepository();
     seed(one, "user-1", 500);
     const oneStore = storeFor(one, [candidate()]);
-    const bulk = vi.fn(async () => ({ outcome: "uncertain" as const, message: "Paystack did not respond." }));
-    expect((await cycle(one, oneStore, client(bulk), true)).submitted).toBe(0);
-    expect(bulk).toHaveBeenCalledTimes(1);
-    const reference = (await one.listForUser("user-1"))[0]?.reference;
-    expect((await one.listForUser("user-1"))[0]?.status).toBe("PROCESSING");
-    expect((await cycle(one, oneStore, client(bulk), true)).status).toBe("waiting");
-    expect(bulk).toHaveBeenCalledTimes(1);
-    expect((await one.listForUser("user-1"))[0]?.reference).toBe(reference);
+    const bulk = async () => {
+      throw new Error("scheduled payout tried to call Paystack");
+    };
+    const paystack = {
+      listBanks: bulk,
+      resolveAccount: bulk,
+      createRecipient: bulk,
+      verifyTransfer: bulk,
+      getBalance: bulk,
+      bulkTransfer: bulk,
+    };
+    expect(await scheduled(one, oneStore, paystack)).toEqual({ status: "disabled", enrolled: 0, submitted: 0 });
+    expect(one.balanceOf("user-1").reservedUnits).toBe(0);
+    expect(one.batchRows()).toHaveLength(0);
   });
 
-  it("pauses submissions and completes or releases a batch without a second credit", async () => {
+  it("completes or reverses a reserved payout once", async () => {
     const repo = new MemoryPayoutRepository();
     seed(repo, "user-1", 500);
     const store = storeFor(repo, [candidate()]);
-    await cycle(repo, store);
-    store.paused = true;
-    const bulk = vi.fn(async () => ({ outcome: "accepted" as const, message: "queued", items: [] }));
-    expect((await cycle(repo, store, client(bulk), true)).status).toBe("paused");
-    expect(bulk).not.toHaveBeenCalled();
-
+    await prepare(repo, store);
     const row = (await repo.listForUser("user-1"))[0];
     if (!row) throw new Error("expected payout");
     await repo.claimApproved([row.id], now);
     await repo.updateBatch(repo.batchRows()[0]?.id ?? "", { status: "QUEUED", message: null });
-    expect(await repo.settle({ reference: row.reference, verified: "success", amountKobo: row.amountKobo, currency: "NGN", transferCode: "TRF_1", at: now })).toBe("paid");
+    expect(await repo.settle({ reference: row.reference, verified: "success", amountKobo: row.amountKobo, currency: "NGN", transferCode: "TRF_1", at: now, actorId: "admin-1" })).toBe("paid");
     expect(repo.batchRows()[0]?.status).toBe("COMPLETED");
+    expect(repo.auditCount("withdrawal.paid")).toBe(1);
     expect(await repo.settle({ reference: row.reference, verified: "reversed", amountKobo: row.amountKobo, currency: "NGN", transferCode: "TRF_1", at: now })).toBe("reversed");
     expect(await repo.settle({ reference: row.reference, verified: "reversed", amountKobo: row.amountKobo, currency: "NGN", transferCode: "TRF_1", at: now })).toBe("ignored");
     expect(repo.balanceOf("user-1")).toEqual({ availableUnits: 500, reservedUnits: 0 });
     expect(repo.ledgerRows("user-1").filter((entry) => entry.providerTxId.endsWith(":reversal"))).toHaveLength(1);
+    expect(repo.auditCount("withdrawal.reversed")).toBe(1);
   });
 });

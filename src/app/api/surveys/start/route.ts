@@ -3,7 +3,11 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { requireCurrentConsent } from "@/lib/legal/access";
 import { isAllowedSurveyClickUrl } from "@/lib/security/click-url";
-import { rateLimit } from "@/lib/security/rate-limit";
+import { clientIpFromHeaders } from "@/lib/security/ip";
+import { SURVEY_VELOCITY_LIMIT } from "@/lib/risk/config";
+import { assessAccount } from "@/lib/risk/account-check";
+import { surveyRestricted } from "@/lib/risk/persist";
+import { rateLimitStore } from "@/lib/risk/store";
 import { loadSurveysForUser } from "@/lib/surveys/load";
 
 export async function POST(request: Request) {
@@ -28,8 +32,16 @@ export async function POST(request: Request) {
     }
   }
 
-  if (!rateLimit(`start:${user.id}`, 30, 60 * 1000)) {
+  const ip = clientIpFromHeaders(request.headers);
+  const [byUser, byIp] = await Promise.all([
+    rateLimitStore().consume(`survey:start:${user.id}`, 30, 60 * 1000),
+    ip ? rateLimitStore().consume(`survey:start-ip:${ip}`, 60, 60 * 1000) : Promise.resolve({ allowed: true, retryAfterSeconds: 1 }),
+  ]);
+  if (!byUser.allowed || !byIp.allowed) {
     return redirectTo(request, "/surveys?error=rate");
+  }
+  if (await surveyRestricted(user.id)) {
+    return redirectTo(request, "/surveys?error=review");
   }
 
   const form = await request.formData();
@@ -45,15 +57,22 @@ export async function POST(request: Request) {
     return redirectTo(request, "/surveys?error=missing");
   }
 
+  const since = new Date(Date.now() - 10 * 60 * 1000);
+  const recentStarts = await prisma.surveyActivity.count({
+    where: { userId: user.id, status: "STARTED", createdAt: { gte: since } },
+  });
   await prisma.surveyActivity.create({
     data: {
       userId: user.id,
-      provider: "bitlabs",
+      provider: result.providerId,
       surveyId: survey.id,
       status: "STARTED",
       startedAt: new Date(),
     },
   });
+  if (recentStarts >= SURVEY_VELOCITY_LIMIT) {
+    await assessAccount({ stage: "survey_launch", userId: user.id, ip, surveyVelocity: true });
+  }
 
   return NextResponse.redirect(survey.clickUrl, 303);
 }

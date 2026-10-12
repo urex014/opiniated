@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatMinutes } from "@/lib/rewards/money";
-import type { PublicSurvey } from "@/lib/bitlabs/types";
+import type { PublicSurvey } from "@/lib/survey-providers/types";
 
 export function SurveyBrowser({ surveys }: { surveys: PublicSurvey[] }) {
   const [sort, setSort] = useState<"recommended" | "reward" | "duration">("recommended");

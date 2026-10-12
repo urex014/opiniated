@@ -40,11 +40,38 @@ describe("Resend configuration", () => {
     expect(readEnv({ REWARD_CURRENCY_CODE: "NGN", REWARD_MINOR_UNIT_FACTOR: "100" }).payoutKoboPerPoint).toBe(1);
   });
 
+  it("keeps traffic checks configurable and off when the optional values are empty", () => {
+    const env = readEnv({});
+    expect(env.riskFingerprintKey).toBeNull();
+    expect(env.ipReputationUrl).toBeNull();
+    expect(env.ipReputationTimeoutMs).toBe(800);
+    expect(env.riskEventRetentionDays).toBe(30);
+    expect(readEnv({ TRUST_PROXY_HEADERS: "true" }).trustProxyHeaders).toBe(true);
+    expect(readEnv({ TRUST_PROXY_HEADERS: "false" }).trustProxyHeaders).toBe(false);
+    expect(() => readEnv({ RISK_FINGERPRINT_KEY: "too-short" })).toThrow();
+  });
+
+  it("keeps CPX off until the app id, secure hash, and enabled flag are set", () => {
+    const unset = readEnv({});
+    expect(unset.cpxAppId).toBeNull();
+    expect(unset.cpxSecureHash).toBeNull();
+    expect(unset.cpxEnabled).toBe(false);
+    expect(unset.cpxApiBase).toBe("https://live-api.cpx-research.com");
+    expect(readEnv({ CPX_RESEARCH_APP_ID: "10", CPX_RESEARCH_SECURE_HASH: "hash", CPX_RESEARCH_ENABLED: "false" }).cpxEnabled).toBe(false);
+    expect(readEnv({ CPX_RESEARCH_ENABLED: "true" }).cpxEnabled).toBe(true);
+    expect(() => readEnv({ CPX_RESEARCH_APP_ID: "app" })).toThrow();
+    expect(() => readEnv({ CPX_RESEARCH_API_BASE: "http://live-api.cpx-research.com" })).toThrow(/HTTPS/);
+  });
+
   it("prices one OPN at the whole-naira dollar rate", () => {
     expect(readEnv({ REWARD_CURRENCY_CODE: "OPN" }).payoutKoboPerPoint).toBeNull();
     expect(readEnv({ REWARD_CURRENCY_CODE: "OPN", PAYOUT_NGN_PER_USD: "1500" }).payoutKoboPerPoint).toBe(1500);
     expect(() => readEnv({ REWARD_CURRENCY_CODE: "OPN", PAYOUT_NGN_PER_USD: "1500", PAYOUT_KOBO_PER_POINT: "1400" })).toThrow(
       /PAYOUT_KOBO_PER_POINT/,
     );
+    expect(
+      readEnv({ REWARD_CURRENCY_CODE: "OPN", PAYOUT_NGN_PER_USD: "1332.49", PAYOUT_KOBO_PER_POINT: "3331.225" }).payoutKoboPerPoint,
+    ).toBeNull();
+    expect(readEnv({ REWARD_CURRENCY_CODE: "OPN", PAYOUT_NGN_PER_USD: "1332.49", PAYOUT_KOBO_PER_POINT: "1500" }).payoutKoboPerPoint).toBe(1500);
   });
 });

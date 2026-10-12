@@ -230,7 +230,7 @@ model PayoutBatch {
 
 model PayoutAudit {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  /// Null for the scheduled job, which has no user session.
+  /// Null when no admin session exists, such as a verified Paystack webhook.
   actorId      String?  @db.ObjectId
   action       String
   withdrawalId String?  @db.ObjectId
@@ -286,4 +286,76 @@ model PayoutFxPolicy {
   createdAt   DateTime @default(now())
 
   @@index([expiresAt])
+}
+
+/// Fixed-window counter. The key includes the window start, so a retry increments one row.
+model RateLimitBucket {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+/// Security decision. Stores a keyed hash of the network subject, not the raw IP address.
+model RiskEvent {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  correlationId String
+  userId        String?
+  stage         String
+  score         Int
+  level         String
+  action        String
+  signals       String
+  subjectHash   String?
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@index([stage, createdAt])
+}
+
+/// Payout or survey hold. Releasing it does not create a second credit.
+model RiskReview {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String
+  status        String
+  scope         String
+  score         Int
+  level         String
+  signals       String
+  correlationId String
+  note          String?
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, status])
+}
+
+/// Equality key for a normalized email or bank fingerprint. The raw value is not stored.
+model IdentityDigest {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String
+  kind      String
+  digest    String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, kind])
+  @@index([kind, digest])
+}
+
+model RiskAudit {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  actorId   String
+  reviewId  String
+  action    String
+  note      String
+  createdAt DateTime @default(now())
+
+  @@index([reviewId, createdAt])
 }

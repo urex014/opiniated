@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SurveyBrowser } from "@/components/surveys/survey-browser";
 import { EmptySurveys, SurveyError } from "@/components/surveys/survey-states";
 import { requireUser } from "@/lib/auth/current-user";
-import { toPublicSurveys } from "@/lib/bitlabs/normalize";
+import { toPublicSurveys } from "@/lib/survey-providers/types";
 import { requireCurrentConsent } from "@/lib/legal/access";
 import { readEnv } from "@/lib/env";
 import { rewardUnitExplanation } from "@/lib/rewards/currency";

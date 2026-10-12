@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { OPEN_WITHDRAWAL_STATUSES } from "@/lib/payouts/constants";
+import { heldUserIds, openReviewUserIds } from "@/lib/risk/persist";
 import { DEFAULT_MIN_USD_CENTS } from "@/lib/payouts/eligibility";
 import type { PayoutCandidate } from "@/lib/payouts/enroll";
 import type { AutoPayoutStore, FxPolicy, ScheduleState } from "@/lib/payouts/cycle";
@@ -57,9 +58,11 @@ export class PrismaAutoPayoutStore implements AutoPayoutStore {
   }
 
   async listCandidates(minUsdCents: number, limit: number): Promise<PayoutCandidate[]> {
+    const blocked = (await openReviewUserIds()).filter((id) => /^[a-f0-9]{24}$/i.test(id));
     const users = await prisma.user.findMany({
       where: {
         deletedAt: null,
+        ...(blocked.length > 0 ? { id: { notIn: blocked } } : {}),
         payoutAccount: { isNot: null },
         rewardAccount: { is: { availableUnits: { gte: minUsdCents } } },
         withdrawals: { none: { status: { in: [...OPEN_WITHDRAWAL_STATUSES] } } },
@@ -68,9 +71,10 @@ export class PrismaAutoPayoutStore implements AutoPayoutStore {
       orderBy: { createdAt: "asc" },
       take: Math.max(limit, 1) * 4,
     });
+    const held = await heldUserIds(users.map((user) => user.id));
     const ready: PayoutCandidate[] = [];
     for (const user of users) {
-      if (!user.rewardAccount || !user.payoutAccount) continue;
+      if (!user.rewardAccount || !user.payoutAccount || held.has(user.id)) continue;
       const spendable = user.rewardAccount.availableUnits - user.rewardAccount.reservedUnits;
       if (spendable < minUsdCents) continue;
       ready.push({

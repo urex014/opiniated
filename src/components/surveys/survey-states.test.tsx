@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { SurveyBrowser } from "@/components/surveys/survey-browser";
 import { EmptySurveys, SurveyError, SurveySkeleton } from "@/components/surveys/survey-states";
-import type { PublicSurvey } from "@/lib/bitlabs/types";
+import type { PublicSurvey } from "@/lib/survey-providers/types";
 
 const survey: PublicSurvey = {
   id: "survey-1",

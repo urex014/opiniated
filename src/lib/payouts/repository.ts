@@ -58,6 +58,16 @@ export type ReviewResult = { ok: true; status: WithdrawalStatus } | { ok: false;
 
 export type SettleResult = "paid" | "failed" | "reversed" | "ignored" | "anomaly";
 
+export type BatchSnapshot = {
+  id: string;
+  status: string;
+  transferCount: number;
+  totalKobo: number;
+  totalPoints: number;
+  withdrawalIds: string[];
+  createdAt: Date;
+};
+
 export type RetryResult = { ok: true; reference: string } | { ok: false; code: "missing" | "not_failed" | "no_account" | "insufficient" | "open_withdrawal" | "duplicate_reference" | "conflict" };
 
 export interface PayoutRepository {
@@ -94,7 +104,9 @@ export interface PayoutRepository {
     nairaPerUsd: number | null;
     rateAt: Date | null;
     withdrawalIds: string[];
+    actorId?: string | null;
   }): Promise<{ ok: true; id: string } | { ok: false; code: "conflict" }>;
+  getBatch(id: string): Promise<BatchSnapshot | null>;
   oldestPendingBatch(): Promise<{ id: string; withdrawalIds: string[] } | null>;
   detachUnclaimed(batchId: string, claimedIds: string[]): Promise<void>;
   updateBatch(id: string, input: { status: string; message: string | null; submittedAt?: Date }): Promise<void>;
@@ -106,6 +118,7 @@ export interface PayoutRepository {
     currency: string | null;
     transferCode: string | null;
     at: Date;
+    actorId?: string | null;
   }): Promise<SettleResult>;
   releaseUnsent(input: { reference: string; at: Date; reason: string }): Promise<SettleResult>;
   beginRetry(input: {

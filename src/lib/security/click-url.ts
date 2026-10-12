@@ -1,17 +1,6 @@
-const ALLOWED_HOST = "api.bitlabs.ai";
+import { readEnv, type AppEnv } from "@/lib/env";
+import { activeLaunchAllowed } from "@/lib/survey-providers/registry";
 
-export function isAllowedSurveyClickUrl(value: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return false;
-  }
-  return (
-    url.protocol === "https:" &&
-    url.hostname === ALLOWED_HOST &&
-    url.pathname === "/v2/client/clicks" &&
-    url.searchParams.has("s") &&
-    url.searchParams.has("i")
-  );
+export function isAllowedSurveyClickUrl(value: string, env: AppEnv = readEnv()): boolean {
+  return activeLaunchAllowed(value, env);
 }

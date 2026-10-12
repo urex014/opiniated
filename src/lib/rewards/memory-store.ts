@@ -54,9 +54,19 @@ export class MemoryRewardStore implements RewardStore {
     return;
   }
 
+  recorded(): Array<Pick<StoredTransaction, "provider" | "providerTxId" | "type" | "amountUnits" | "providerUsd">> {
+    return this.state.transactions.map((tx) => ({
+      provider: tx.provider,
+      providerTxId: tx.providerTxId,
+      type: tx.type,
+      amountUnits: tx.amountUnits,
+      providerUsd: tx.providerUsd,
+    }));
+  }
+
   private async applyUnlocked(event: ValidatedCallback): Promise<ApplyResult> {
     const next = cloneState(this.state);
-    const key = `bitlabs:${event.providerTxId}`;
+    const key = `${event.provider}:${event.providerTxId}`;
     if (next.processed.has(key)) return { outcome: "DUPLICATE" };
     if (!this.users.has(event.userId)) {
       next.processed.set(key, "UNKNOWN_USER");

@@ -27,7 +27,7 @@ export default async function ActivityPage({
         <div className="mt-5 rounded-lg border border-line bg-white px-4 py-6">
           <h2 className="section-title">Nothing here yet</h2>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Start a survey and this page will show the attempt. Rewards appear after BitLabs confirms them.
+            Start a survey and this page will show the attempt. Rewards appear after the provider confirms them.
           </p>
           <Link href="/surveys" className="btn btn-primary mt-4">
             Browse surveys

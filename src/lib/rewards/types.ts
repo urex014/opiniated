@@ -10,6 +10,7 @@ export type PostbackOutcome =
 export type CallbackType = "COMPLETE" | "START_BONUS" | "RECONCILIATION" | "SCREENOUT";
 
 export type ValidatedCallback = {
+  provider: string;
   userId: string;
   providerTxId: string;
   type: CallbackType;
@@ -31,6 +32,7 @@ export type ApplyResult =
 export interface RewardStore {
   apply(event: ValidatedCallback): Promise<ApplyResult>;
   recordRejection(entry: {
+    provider: string;
     outcome: "INVALID_SIGNATURE" | "INVALID_PAYLOAD";
     providerTxId?: string;
     type?: string;

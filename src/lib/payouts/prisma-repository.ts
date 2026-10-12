@@ -242,6 +242,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
     nairaPerUsd: number | null;
     rateAt: Date | null;
     withdrawalIds: string[];
+    actorId?: string | null;
   }) {
     try {
       return await runMoneyTransaction(async (tx) => {
@@ -255,6 +256,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
             rateAt: input.rateAt,
             currency: "NGN",
             message: null,
+            actorId: input.actorId ?? null,
           },
         });
         const linked = await tx.withdrawal.updateMany({
@@ -263,7 +265,12 @@ export class PrismaPayoutRepository implements PayoutRepository {
         });
         if (linked.count !== input.withdrawalIds.length) throw new PayoutWriteConflict();
         await tx.payoutAudit.create({
-          data: { actorId: null, action: "batch.enrolled", batchId: batch.id, detail: `${input.transferCount} payouts` },
+          data: {
+            actorId: input.actorId ?? null,
+            action: input.actorId ? "batch.created" : "batch.enrolled",
+            batchId: batch.id,
+            detail: `${input.transferCount} payouts, ${input.totalKobo} kobo`,
+          },
         });
         return { ok: true as const, id: batch.id };
       });
@@ -271,6 +278,31 @@ export class PrismaPayoutRepository implements PayoutRepository {
       if (error instanceof PayoutWriteConflict || isRetryable(error)) return { ok: false as const, code: "conflict" as const };
       throw error;
     }
+  }
+
+  async getBatch(id: string) {
+    const batch = await prisma.payoutBatch.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        transferCount: true,
+        totalKobo: true,
+        totalPoints: true,
+        createdAt: true,
+        withdrawals: { select: { id: true } },
+      },
+    });
+    if (!batch) return null;
+    return {
+      id: batch.id,
+      status: batch.status,
+      transferCount: batch.transferCount,
+      totalKobo: batch.totalKobo,
+      totalPoints: batch.totalPoints,
+      withdrawalIds: batch.withdrawals.map((row) => row.id),
+      createdAt: batch.createdAt,
+    };
   }
 
   async oldestPendingBatch() {
@@ -309,6 +341,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
     currency: string | null;
     transferCode: string | null;
     at: Date;
+    actorId?: string | null;
   }): Promise<SettleResult> {
     return withRetry(() => this.settleOnce(input));
   }
@@ -325,6 +358,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
           data: { status: "FAILED", failureReason: clip(input.reason) },
         });
         await syncBatchStatus(tx, row.batchId);
+        await outcomeAudit(tx, row, null, "withdrawal.failed", input.reference);
         return "failed" as const;
       }),
     );
@@ -510,6 +544,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
     currency: string | null;
     transferCode: string | null;
     at: Date;
+    actorId?: string | null;
   }): Promise<SettleResult> {
     return runMoneyTransaction(async (tx) => {
       const attempt = await tx.transferAttempt.findUnique({
@@ -559,6 +594,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
           data: { status: "PAID", transferCode: input.transferCode },
         });
         await syncBatchStatus(tx, row.batchId);
+        await outcomeAudit(tx, row, input.actorId ?? null, "withdrawal.paid", input.reference);
         return "paid";
       }
       if (decision.type === "fail") {
@@ -569,6 +605,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
           data: { status: "FAILED", failureReason: clip(decision.reason) },
         });
         await syncBatchStatus(tx, row.batchId);
+        await outcomeAudit(tx, row, input.actorId ?? null, "withdrawal.failed", input.reference);
         return "failed";
       }
       if (decision.type === "reverse-paid") {
@@ -602,6 +639,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
         if (balance.count !== 1) throw new PayoutWriteConflict();
         await tx.transferAttempt.updateMany({ where: { reference: input.reference }, data: { status: "REVERSED" } });
         await syncBatchStatus(tx, row.batchId);
+        await outcomeAudit(tx, row, input.actorId ?? null, "withdrawal.reversed", input.reference);
         return "reversed";
       }
       const moved = await tx.withdrawal.updateMany({
@@ -620,6 +658,7 @@ export class PrismaPayoutRepository implements PayoutRepository {
       });
       await tx.transferAttempt.updateMany({ where: { reference: input.reference }, data: { status: "REVERSED" } });
       await syncBatchStatus(tx, row.batchId);
+      await outcomeAudit(tx, row, input.actorId ?? null, "withdrawal.reversed", input.reference);
       return "reversed";
     });
   }
@@ -702,6 +741,18 @@ export class PrismaPayoutRepository implements PayoutRepository {
 }
 
 export const prismaPayouts = new PrismaPayoutRepository();
+
+async function outcomeAudit(
+  tx: Prisma.TransactionClient,
+  row: { id: string; batchId: string | null },
+  actorId: string | null,
+  action: string,
+  detail: string,
+): Promise<void> {
+  await tx.payoutAudit.create({
+    data: { actorId, action, withdrawalId: row.id, batchId: row.batchId, detail },
+  });
+}
 
 async function syncBatchStatus(tx: Prisma.TransactionClient, batchId: string | null): Promise<void> {
   if (!batchId) return;

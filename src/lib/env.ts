@@ -11,10 +11,13 @@ const schema = z.object({
     .optional(),
   AUTH_SECRET: z.string().min(32).optional(),
   APP_URL: z.string().url().optional(),
-  BITLABS_API_TOKEN: z.string().min(1).optional(),
-  BITLABS_SECRET: z.string().min(1).optional(),
-  BITLABS_CALLBACK_URL: z.string().url().optional(),
-  BITLABS_ENFORCE_IP_ALLOWLIST: z.enum(["true", "false"]).optional(),
+  CPX_RESEARCH_APP_ID: z
+    .string()
+    .regex(/^\d{1,12}$/)
+    .optional(),
+  CPX_RESEARCH_SECURE_HASH: z.string().min(1).optional(),
+  CPX_RESEARCH_ENABLED: z.enum(["true", "false"]).optional(),
+  CPX_RESEARCH_API_BASE: z.string().url().optional(),
   REWARD_CURRENCY_CODE: z.string().min(1).optional(),
   REWARD_MINOR_UNIT_FACTOR: z.coerce.number().int().positive().optional(),
   NEXT_PUBLIC_SUPPORT_EMAIL: z.string().email().optional(),
@@ -28,22 +31,25 @@ const schema = z.object({
   PAYSTACK_BASE_URL: z.string().url().optional(),
   PAYSTACK_TRANSFERS_ENABLED: z.enum(["true", "false"]).optional(),
   PAYSTACK_LIVE_CONFIRMED: z.enum(["true", "false"]).optional(),
-  PAYOUT_KOBO_PER_POINT: z.coerce.number().int().positive().optional(),
-  PAYOUT_NGN_PER_USD: z.coerce.number().int().positive().optional(),
   PAYOUT_MIN_KOBO: z.coerce.number().int().positive().optional(),
   PAYOUT_FEE_BUFFER_KOBO: z.coerce.number().int().nonnegative().optional(),
   ADMIN_EMAILS: z.string().optional(),
   CRON_SECRET: z.string().min(16).optional(),
+  TRUST_PROXY_HEADERS: z.enum(["true", "false"]).optional(),
+  RISK_FINGERPRINT_KEY: z.string().min(32).optional(),
+  IP_REPUTATION_URL: z.string().url().optional(),
+  IP_REPUTATION_TIMEOUT_MS: z.coerce.number().int().positive().max(5_000).optional(),
+  RISK_EVENT_RETENTION_DAYS: z.coerce.number().int().positive().max(365).optional(),
 });
 
 export type AppEnv = {
   databaseUrl: string;
   authSecret: string;
   appUrl: string;
-  bitlabsApiToken: string | null;
-  bitlabsSecret: string | null;
-  bitlabsCallbackUrl: string | null;
-  enforceBitlabsIpAllowlist: boolean;
+  cpxAppId: string | null;
+  cpxSecureHash: string | null;
+  cpxEnabled: boolean;
+  cpxApiBase: string;
   rewardCurrencyCode: string;
   rewardMinorUnitFactor: number;
   supportEmail: string | null;
@@ -61,6 +67,11 @@ export type AppEnv = {
   payoutFeeBufferKobo: number;
   adminEmails: string[];
   cronSecret: string | null;
+  trustProxyHeaders: boolean;
+  riskFingerprintKey: string | null;
+  ipReputationUrl: string | null;
+  ipReputationTimeoutMs: number;
+  riskEventRetentionDays: number;
 };
 
 function blankToUndefined(value: string | undefined): string | undefined {
@@ -73,10 +84,10 @@ export function readEnv(source: Record<string, string | undefined> = process.env
     DATABASE_URL: blankToUndefined(source.DATABASE_URL),
     AUTH_SECRET: blankToUndefined(source.AUTH_SECRET),
     APP_URL: blankToUndefined(source.APP_URL),
-    BITLABS_API_TOKEN: blankToUndefined(source.BITLABS_API_TOKEN),
-    BITLABS_SECRET: blankToUndefined(source.BITLABS_SECRET),
-    BITLABS_CALLBACK_URL: blankToUndefined(source.BITLABS_CALLBACK_URL),
-    BITLABS_ENFORCE_IP_ALLOWLIST: blankToUndefined(source.BITLABS_ENFORCE_IP_ALLOWLIST),
+    CPX_RESEARCH_APP_ID: blankToUndefined(source.CPX_RESEARCH_APP_ID),
+    CPX_RESEARCH_SECURE_HASH: blankToUndefined(source.CPX_RESEARCH_SECURE_HASH),
+    CPX_RESEARCH_ENABLED: blankToUndefined(source.CPX_RESEARCH_ENABLED),
+    CPX_RESEARCH_API_BASE: blankToUndefined(source.CPX_RESEARCH_API_BASE),
     REWARD_CURRENCY_CODE: blankToUndefined(source.REWARD_CURRENCY_CODE),
     REWARD_MINOR_UNIT_FACTOR: blankToUndefined(source.REWARD_MINOR_UNIT_FACTOR),
     NEXT_PUBLIC_SUPPORT_EMAIL: blankToUndefined(source.NEXT_PUBLIC_SUPPORT_EMAIL),
@@ -90,12 +101,15 @@ export function readEnv(source: Record<string, string | undefined> = process.env
     PAYSTACK_BASE_URL: blankToUndefined(source.PAYSTACK_BASE_URL),
     PAYSTACK_TRANSFERS_ENABLED: blankToUndefined(source.PAYSTACK_TRANSFERS_ENABLED),
     PAYSTACK_LIVE_CONFIRMED: blankToUndefined(source.PAYSTACK_LIVE_CONFIRMED),
-    PAYOUT_KOBO_PER_POINT: blankToUndefined(source.PAYOUT_KOBO_PER_POINT),
-    PAYOUT_NGN_PER_USD: blankToUndefined(source.PAYOUT_NGN_PER_USD),
     PAYOUT_MIN_KOBO: blankToUndefined(source.PAYOUT_MIN_KOBO),
     PAYOUT_FEE_BUFFER_KOBO: blankToUndefined(source.PAYOUT_FEE_BUFFER_KOBO),
     ADMIN_EMAILS: blankToUndefined(source.ADMIN_EMAILS),
     CRON_SECRET: blankToUndefined(source.CRON_SECRET),
+    TRUST_PROXY_HEADERS: blankToUndefined(source.TRUST_PROXY_HEADERS),
+    RISK_FINGERPRINT_KEY: blankToUndefined(source.RISK_FINGERPRINT_KEY),
+    IP_REPUTATION_URL: blankToUndefined(source.IP_REPUTATION_URL),
+    IP_REPUTATION_TIMEOUT_MS: blankToUndefined(source.IP_REPUTATION_TIMEOUT_MS),
+    RISK_EVENT_RETENTION_DAYS: blankToUndefined(source.RISK_EVENT_RETENTION_DAYS),
   });
 
   const factor = parsed.REWARD_MINOR_UNIT_FACTOR ?? 1;
@@ -104,8 +118,8 @@ export function readEnv(source: Record<string, string | undefined> = process.env
   }
 
   const currencyCode = parsed.REWARD_CURRENCY_CODE ?? "PTS";
-  const configuredRate = parsed.PAYOUT_KOBO_PER_POINT ?? null;
-  const nairaPerUsd = parsed.PAYOUT_NGN_PER_USD ?? null;
+  const configuredRate = wholeKobo(blankToUndefined(source.PAYOUT_KOBO_PER_POINT));
+  const nairaPerUsd = wholeKobo(blankToUndefined(source.PAYOUT_NGN_PER_USD));
   if (currencyCode === "NGN" && factor === 100 && configuredRate != null && configuredRate !== 1) {
     throw new Error("PAYOUT_KOBO_PER_POINT must be 1 when rewards are already stored as kobo.");
   }
@@ -116,15 +130,19 @@ export function readEnv(source: Record<string, string | undefined> = process.env
   if (!paystackBaseUrl.startsWith("https://")) {
     throw new Error("PAYSTACK_BASE_URL must use HTTPS.");
   }
+  const cpxApiBase = parsed.CPX_RESEARCH_API_BASE ?? "https://live-api.cpx-research.com";
+  if (!cpxApiBase.startsWith("https://")) {
+    throw new Error("CPX_RESEARCH_API_BASE must use HTTPS.");
+  }
 
   return {
     databaseUrl: parsed.DATABASE_URL ?? "",
     authSecret: parsed.AUTH_SECRET ?? "",
     appUrl: parsed.APP_URL ?? "http://localhost:3000",
-    bitlabsApiToken: parsed.BITLABS_API_TOKEN ?? null,
-    bitlabsSecret: parsed.BITLABS_SECRET ?? null,
-    bitlabsCallbackUrl: parsed.BITLABS_CALLBACK_URL ?? null,
-    enforceBitlabsIpAllowlist: parsed.BITLABS_ENFORCE_IP_ALLOWLIST === "true",
+    cpxAppId: parsed.CPX_RESEARCH_APP_ID ?? null,
+    cpxSecureHash: parsed.CPX_RESEARCH_SECURE_HASH ?? null,
+    cpxEnabled: parsed.CPX_RESEARCH_ENABLED === "true",
+    cpxApiBase,
     rewardCurrencyCode: currencyCode,
     rewardMinorUnitFactor: factor,
     supportEmail: parsed.NEXT_PUBLIC_SUPPORT_EMAIL ?? null,
@@ -148,7 +166,18 @@ export function readEnv(source: Record<string, string | undefined> = process.env
       .map((email) => email.trim().toLowerCase())
       .filter((email) => z.string().email().safeParse(email).success),
     cronSecret: parsed.CRON_SECRET ?? null,
+    trustProxyHeaders: parsed.TRUST_PROXY_HEADERS === "true" || (parsed.TRUST_PROXY_HEADERS !== "false" && process.env.VERCEL === "1"),
+    riskFingerprintKey: parsed.RISK_FINGERPRINT_KEY ?? null,
+    ipReputationUrl: parsed.IP_REPUTATION_URL ?? null,
+    ipReputationTimeoutMs: parsed.IP_REPUTATION_TIMEOUT_MS ?? 800,
+    riskEventRetentionDays: parsed.RISK_EVENT_RETENTION_DAYS ?? 30,
   };
+}
+
+function wholeKobo(value: string | undefined): number | null {
+  if (!value || !/^[1-9]\d*$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 function koboPerRewardUnit(

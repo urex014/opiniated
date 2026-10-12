@@ -11,6 +11,7 @@ import { OPEN_WITHDRAWAL_STATUSES, isWithdrawalStatus } from "@/lib/payouts/cons
 import { BANK_HOLD_MS, evaluateEligibility, payoutNotice, payoutProgress } from "@/lib/payouts/eligibility";
 import { prismaAutoPayouts, readSchedule } from "@/lib/payouts/prisma-schedule";
 import { prismaPayouts } from "@/lib/payouts/prisma-repository";
+import { payoutHeld } from "@/lib/risk/persist";
 
 export const metadata: Metadata = { title: "Payouts" };
 export const instant = false;
@@ -20,13 +21,14 @@ export default async function PayoutsPage() {
   const user = await requireUser();
   const env = readEnv();
   const now = new Date();
-  const [account, payout, withdrawals, banks, schedule, fx] = await Promise.all([
+  const [account, payout, withdrawals, banks, schedule, fx, held] = await Promise.all([
     prisma.rewardAccount.findUnique({ where: { userId: user.id } }),
     prismaPayouts.getPayoutAccount(user.id),
     prismaPayouts.listForUser(user.id),
     loadBanks(),
     readSchedule(now),
     prismaAutoPayouts.activeFx(now),
+    payoutHeld(user.id),
   ]);
   const available = account?.availableUnits ?? 0;
   const reserved = account?.reservedUnits ?? 0;
@@ -48,6 +50,7 @@ export default async function PayoutsPage() {
     now,
     minUsdCents: schedule.minUsdCents,
     minimumKobo: env.payoutMinKobo,
+    payoutHeld: held,
   });
   const history = withdrawals.flatMap((row) =>
     isWithdrawalStatus(row.status)
@@ -59,8 +62,8 @@ export default async function PayoutsPage() {
     <>
       <h1 className="page-title">Payouts</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-        Eligible balances are paid in the next scheduled batch to a verified Nigerian bank account. You do not request a
-        withdrawal. A batch reservation is not a payment until Paystack confirms the transfer.
+        Eligible balances are reserved into a reviewed batch and paid to a verified Nigerian bank account. You do not
+        request a withdrawal. A reservation is not a payment until Paystack confirms the transfer.
       </p>
       <div className="mt-5">
         <EarningsPanel
@@ -69,7 +72,9 @@ export default async function PayoutsPage() {
           reservedUnits={reserved}
           minUsdCents={schedule.minUsdCents}
           progress={payoutProgress(spendable, schedule.minUsdCents)}
-          notice={payoutNotice({
+          notice={held
+            ? "Your payout is paused while this account is reviewed. Your balance stays in the account. Contact support if you think this is a mistake."
+            : payoutNotice({
             hasVerifiedBank: hasBank,
             bankReady,
             phase,
@@ -82,7 +87,7 @@ export default async function PayoutsPage() {
           currencyCode={env.rewardCurrencyCode}
           factor={env.rewardMinorUnitFactor}
           bankLabel={bankLabel(payout, bankReady)}
-          nextBatch={schedule.paused ? "Automatic batches are paused. Your balance stays in your account." : `Next batch check: ${formatWhen(schedule.nextRunAt)}. Reaching the threshold includes you then.`}
+          nextBatch={schedule.paused ? "Payout batches are paused. Your balance stays in your account." : "An administrator reviews eligible balances before any transfer. Reaching the minimum does not send money by itself."}
         />
       </div>
 
@@ -109,10 +114,6 @@ function bankLabel(payout: { bankName: string; accountLast4: string; accountName
   if (!payout) return "No bank account is connected.";
   const saved = `${payout.bankName} ending ${payout.accountLast4}, ${payout.accountName}.`;
   return ready ? `Verified bank account: ${saved}` : `Saved bank account: ${saved}`;
-}
-
-function formatWhen(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(date);
 }
 
 async function loadBanks(): Promise<{ ok: true; banks: { name: string; code: string }[] } | { ok: false; message: string }> {

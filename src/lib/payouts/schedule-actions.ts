@@ -14,11 +14,11 @@ export async function adminScheduleAction(_state: PayoutFormState, formData: For
   const now = new Date();
   if (intent === "pause") {
     await setSchedulePaused(true, user.id);
-    return { message: "New batch submissions are paused." };
+    return { message: "Batch release is paused." };
   }
   if (intent === "resume") {
     await setSchedulePaused(false, user.id);
-    return { message: "Scheduled batches can run again. Paystack transfers still follow the server switch." };
+    return { message: "Release is allowed. Transfers stay off until an admin confirms Release Batch and Paystack transfers are enabled." };
   }
   if (intent === "settings") {
     const intervalDays = z.coerce.number().int().safeParse(formData.get("intervalDays"));

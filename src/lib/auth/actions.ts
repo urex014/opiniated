@@ -12,6 +12,7 @@ import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/email/send"
 import { consentWrites, outstandingDocuments } from "@/lib/legal/consent";
 import { POLICY_DOCUMENTS, type PolicyDocument } from "@/lib/legal/versions";
 import { allowAuthAttempt } from "@/lib/security/auth-limits";
+import { assessAccount, noteEmailIdentity } from "@/lib/risk/account-check";
 import { clientIpFromHeaders } from "@/lib/security/ip";
 import { turnstileErrorMessage, verifyTurnstileToken } from "@/lib/security/turnstile";
 import {
@@ -44,7 +45,7 @@ export async function registerAction(_state: FormState, formData: FormData): Pro
   const identity = registrationIdentity(parsed.data);
   const headerList = await headers();
   const ip = clientIpFromHeaders(headerList) ?? "local";
-  if (!allowAuthAttempt("register", ip)) {
+  if (!(await allowAuthAttempt("register", ip))) {
     return { error: "Too many registration attempts. Wait a few minutes and try again." };
   }
 
@@ -84,6 +85,11 @@ export async function registerAction(_state: FormState, formData: FormData): Pro
     return created;
   });
 
+  const emailAlias = await noteEmailIdentity(user.id, user.email).catch(() => false);
+  if (emailAlias) {
+    await assessAccount({ stage: "register", userId: user.id, email: user.email, ip, emailAlias: true });
+  }
+
   if (readEnv().email) {
     try {
       await issueVerificationEmail(user.id, user.email);
@@ -106,7 +112,7 @@ export async function loginAction(_state: FormState, formData: FormData): Promis
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
 
   const ip = await requestIp();
-  if (!allowAuthAttempt("login", ip, parsed.data.email)) {
+  if (!(await allowAuthAttempt("login", ip, parsed.data.email))) {
     return { error: "Too many sign-in attempts. Wait a few minutes and try again." };
   }
 
@@ -121,6 +127,10 @@ export async function loginAction(_state: FormState, formData: FormData): Promis
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (!user || user.deletedAt || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
     return { error: "Email or password is incorrect." };
+  }
+  const emailAlias = await noteEmailIdentity(user.id, user.email).catch(() => false);
+  if (emailAlias) {
+    await assessAccount({ stage: "login", userId: user.id, email: user.email, ip, emailAlias: true });
   }
   const session = await getSession();
   session.userId = user.id;
@@ -139,7 +149,7 @@ export async function forgotPasswordAction(_state: FormState, formData: FormData
   const parsed = forgotSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
   const ip = await requestIp();
-  if (!allowAuthAttempt("forgot", ip)) {
+  if (!(await allowAuthAttempt("forgot", ip))) {
     return { error: "Too many reset requests. Wait a few minutes and try again." };
   }
 
@@ -171,7 +181,7 @@ export async function resetPasswordAction(_state: FormState, formData: FormData)
     confirm: formData.get("confirm"),
   });
   if (!parsed.success) return { fieldErrors: parsed.error.flatten().fieldErrors };
-  if (!allowAuthAttempt("reset", await requestIp())) {
+  if (!(await allowAuthAttempt("reset", await requestIp()))) {
     return { error: "Too many reset attempts. Wait a few minutes and try again." };
   }
 
@@ -265,7 +275,7 @@ export async function deleteAccountAction(_state: FormState, formData: FormData)
   const session = await getSession();
   if (!session.userId) redirect("/login?next=/account");
   const ip = await requestIp();
-  if (!allowAuthAttempt("verify", ip, session.userId)) {
+  if (!(await allowAuthAttempt("verify", ip, session.userId))) {
     return { error: "Too many attempts. Wait a few minutes and try again." };
   }
   const password = String(formData.get("password") ?? "");
@@ -299,7 +309,7 @@ export async function deleteAccountAction(_state: FormState, formData: FormData)
 export async function sendVerificationAction(): Promise<FormState> {
   const session = await getSession();
   if (!session.userId) redirect("/login?next=/account");
-  if (!allowAuthAttempt("verify", await requestIp(), session.userId)) {
+  if (!(await allowAuthAttempt("verify", await requestIp(), session.userId))) {
     return { error: "Too many verification requests. Wait a few minutes and try again." };
   }
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
@@ -317,7 +327,7 @@ export async function sendVerificationAction(): Promise<FormState> {
 }
 
 export async function verifyEmailAction(_state: FormState, formData: FormData): Promise<FormState> {
-  if (!allowAuthAttempt("verify", await requestIp())) {
+  if (!(await allowAuthAttempt("verify", await requestIp()))) {
     return { error: "Too many verification attempts. Wait a few minutes and try again." };
   }
   const result = await consumeEmailVerificationToken(String(formData.get("token") ?? ""));

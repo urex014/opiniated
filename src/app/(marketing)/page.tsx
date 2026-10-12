@@ -10,7 +10,7 @@ const steps = [
   { title: "Create your account", text: "Register with an email and password. Your account is how rewards are matched to you." },
   { title: "Browse available surveys", text: "See the surveys you currently qualify for, with the reward and estimated time when the provider sends them." },
   { title: "Complete surveys you qualify for", text: "Open a survey and answer it on the provider’s site. Some surveys end early if you do not match." },
-  { title: "Receive rewards for verified completions", text: "A reward is added only after BitLabs confirms the completion. Opening a survey is not enough." },
+  { title: "Receive rewards for verified completions", text: "A reward is added only after the survey provider confirms the completion. Opening a survey is not enough." },
 ];
 
 const faqs = [
@@ -20,7 +20,7 @@ const faqs = [
   },
   {
     q: "When is a reward added?",
-    a: "After BitLabs sends a verified completion callback. Screen-outs are recorded, but they do not add a reward.",
+    a: "After a verified completion callback. Opening a survey, or returning to this site, does not add a reward.",
   },
   {
     q: "Can I withdraw the balance?",
@@ -73,7 +73,7 @@ export default function HomePage() {
           <div>
             <h2 className="section-title">How rewards work</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Each survey shows the reward BitLabs provides for your account. 100 OPN equal $1.00. Amounts are stored as
+              Each survey shows the reward returned for your account. 100 OPN equal $1.00. Amounts are stored as
               whole OPN so balances do not drift.
             </p>
             <p className="mt-3 text-sm leading-6 text-muted">

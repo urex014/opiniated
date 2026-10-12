@@ -1,6 +1,7 @@
 import type { PaystackClient } from "@/lib/paystack/client";
 import { allowBankResolve, allowRecipientCreate } from "@/lib/payouts/limits";
 import type { PayoutRepository } from "@/lib/payouts/repository";
+import { assessAccount, noteBankIdentity } from "@/lib/risk/account-check";
 
 const ACCOUNT_NUMBER = /^\d{10}$/;
 const BANK_CODE = /^\d{3,6}$/;
@@ -15,7 +16,7 @@ export async function checkBankAccount(
 ): Promise<BankFlowResult> {
   if (!BANK_CODE.test(bankCode)) return { error: "Choose a supported bank." };
   if (!ACCOUNT_NUMBER.test(accountNumber)) return { error: "Enter the 10-digit account number." };
-  if (!allowBankResolve(userId)) return { error: "Too many account checks. Wait a few minutes and try again." };
+  if (!(await allowBankResolve(userId))) return { error: "Too many account checks. Wait a few minutes and try again." };
   const banks = await client.listBanks();
   if (!banks.ok) return { error: banks.message };
   if (!banks.banks.some((bank) => bank.code === bankCode)) return { error: "Choose a supported bank." };
@@ -35,7 +36,7 @@ export async function saveBankAccount(
   if (!BANK_CODE.test(input.bankCode)) return { error: "Choose a supported bank." };
   if (!ACCOUNT_NUMBER.test(input.accountNumber)) return { error: "Enter the 10-digit account number." };
   if (!input.confirmedName.trim()) return { error: "Check the account before saving it." };
-  if (!allowBankResolve(input.userId) || !allowRecipientCreate(input.userId)) {
+  if (!(await allowBankResolve(input.userId)) || !(await allowRecipientCreate(input.userId))) {
     return { error: "Too many account saves. Wait and try again." };
   }
   const banks = await client.listBanks();
@@ -73,5 +74,19 @@ export async function saveBankAccount(
     updatedAt: input.now,
   });
   if (!saved.ok) return { error: "That payout account is already saved on another profile." };
+  const recipientReused = await noteBankIdentity(input.userId, {
+    bankCode: bank.code,
+    accountLast4: last4,
+    accountName: resolved.accountName,
+  }).catch(() => false);
+  if (recipientReused) {
+    await assessAccount({
+      stage: "payout_account",
+      userId: input.userId,
+      ip: null,
+      recipientReused: true,
+      now: input.now,
+    });
+  }
   return { message: `Saved ${bank.name} account ending ${last4} for ${resolved.accountName}.` };
 }

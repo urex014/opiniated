@@ -23,7 +23,7 @@ export default async function RewardsPage() {
     <>
       <h1 className="page-title">Rewards</h1>
       <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-        Your balance is kept in {rewardUnitName(env.rewardCurrencyCode)}. Credits come from verified BitLabs callbacks.
+        Your balance is kept in {rewardUnitName(env.rewardCurrencyCode)}. Credits come from verified survey callbacks.
         TheoremReach is not connected. {rewardUnitExplanation(env.rewardCurrencyCode, env.rewardMinorUnitFactor)} A
         pending provider review can later reverse an approved credit, but it cannot take points already reserved for a
         payout. The balance never goes below zero. Automatic payouts are shown on the{" "}

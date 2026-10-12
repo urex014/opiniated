@@ -11,6 +11,7 @@ export type PayoutCandidate = {
   accountUpdatedAt: Date | null;
   recipientCode: string | null;
   openWithdrawal: boolean;
+  payoutHeld?: boolean;
 };
 
 export async function enrollEligible(input: {
@@ -74,5 +75,6 @@ function eligibilityFrom(
     now: input.now,
     minUsdCents: input.minUsdCents,
     minimumKobo: input.minimumKobo,
+    payoutHeld: candidate.payoutHeld === true,
   };
 }

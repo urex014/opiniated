@@ -24,7 +24,14 @@ export function DashboardShell({
   showAdmin?: boolean;
   children: React.ReactNode;
 }) {
-  const items = showAdmin ? [...baseItems, { href: "/admin/payouts", label: "Payout admin" }] : baseItems;
+  const items = showAdmin
+    ? [
+        ...baseItems,
+        { href: "/admin/payouts", label: "Payout admin" },
+        { href: "/admin/risk", label: "Risk review" },
+        { href: "/admin/surveys", label: "Survey providers" },
+      ]
+    : baseItems;
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const label = user.name || user.email;

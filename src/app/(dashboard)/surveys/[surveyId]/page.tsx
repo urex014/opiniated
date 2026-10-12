@@ -53,13 +53,13 @@ export default async function SurveyDetailPage({
             </div>
             {survey.rating ? (
               <div>
-                <dt className="text-xs text-muted">Ease rating</dt>
-                <dd className="mt-1">{survey.rating} of 5. The provider uses 5 for easier and 1 for harder.</dd>
+                <dt className="text-xs text-muted">Average rating</dt>
+                <dd className="mt-1">{survey.rating} of 5</dd>
               </div>
             ) : null}
           </dl>
           {survey.tags.includes("pii") ? (
-            <p className="mt-3 text-sm text-muted">BitLabs marked this survey as one that may ask for personal information.</p>
+            <p className="mt-3 text-sm text-muted">This survey may ask for personal information.</p>
           ) : null}
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
             The reward is added only after the provider sends a verified completion. Returning to this site, or saying

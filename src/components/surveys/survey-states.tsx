@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { SurveyRestriction } from "@/lib/bitlabs/types";
+import type { SurveyRestriction } from "@/lib/survey-providers/types";
 
 export function SurveySkeleton() {
   return (
@@ -44,10 +44,11 @@ const errorCopy: Record<string, string> = {
   timeout: "The survey provider took too long to respond.",
   unavailable: "Surveys could not be loaded. The provider is temporarily unavailable.",
   malformed: "Surveys could not be loaded because the provider response was not usable.",
-  not_configured: "Surveys are not available until the site operator adds BitLabs credentials.",
+  not_configured: "Surveys are not available right now.",
   missing: "That survey is no longer available. Refresh the list and choose another.",
   load: "Surveys could not be loaded, so this one could not be started.",
   rate: "Too many survey starts in a short time. Wait a moment and try again.",
+  review: "Surveys are paused on this account while it is reviewed. Contact support if you think this is a mistake.",
 };
 
 export function SurveyError({ code }: { code: string }) {

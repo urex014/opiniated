@@ -22,7 +22,7 @@ export function TransactionTable({
   if (transactions.length === 0) {
     return (
       <p className="rounded-lg border border-line bg-white px-4 py-6 text-sm leading-6 text-muted">
-        No rewards yet. A reward appears here after BitLabs confirms a completion. Starting a survey does not add one.
+        No rewards yet. A reward appears here after a verified completion. Starting a survey does not add one.
       </p>
     );
   }

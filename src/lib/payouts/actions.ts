@@ -1,24 +1,26 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/current-user";
 import { readEnv } from "@/lib/env";
 import { createPaystackClient } from "@/lib/paystack/client";
 import { paystackKeyMode } from "@/lib/paystack/mode";
+import { prepareAdminBatch, releaseAdminBatch } from "@/lib/payouts/admin-batch";
 import {
   approveWithdrawal,
   reconcileWithdrawal,
   rejectWithdrawal,
   releaseRejectedTransfer,
   retryWithdrawal,
-  submitBatch,
 } from "@/lib/payouts/admin-service";
 import { isAdminEmail } from "@/lib/payouts/access";
 import { checkBankAccount, saveBankAccount } from "@/lib/payouts/bank";
 import { prismaPayouts } from "@/lib/payouts/prisma-repository";
 import { manualWithdrawalRefusal } from "@/lib/payouts/manual";
 import { createWithdrawalReference } from "@/lib/payouts/reference";
-import { readSchedule } from "@/lib/payouts/prisma-schedule";
+import { prismaAutoPayouts, readSchedule } from "@/lib/payouts/prisma-schedule";
+import { formatReward } from "@/lib/rewards/money";
 
 export type PayoutFormState = { error?: string; message?: string; accountName?: string };
 
@@ -68,27 +70,18 @@ export async function withdrawalAction(state: PayoutFormState, formData: FormDat
 
 export async function adminPayoutAction(_state: PayoutFormState, formData: FormData): Promise<PayoutFormState> {
   const user = await requireUser();
-  if (!adminOrNull(user.email)) return { error: "You do not have access to payout administration." };
+  const admin = adminOrNull(user.email);
+  if (!admin) return { error: "You do not have access to payout administration." };
   const client = clientFromEnv();
   const intent = String(formData.get("intent") ?? "");
   const id = String(formData.get("withdrawalId") ?? "");
   const env = readEnv();
   const now = new Date();
-  if (intent === "submit") {
-    if ((await readSchedule(now)).paused) return { error: "Batch submission is paused." };
-    if (!client) return { error: "Paystack is not configured." };
-    const result = await submitBatch({
-      repo: prismaPayouts,
-      client,
-      actorId: user.id,
-      now,
-      transfersEnabled: env.paystackTransfersEnabled,
-      liveConfirmed: env.paystackLiveConfirmed,
-      keyMode: paystackKeyMode(env.paystackSecretKey),
-      feeBufferKobo: env.payoutFeeBufferKobo,
-    });
-    return result.ok ? { message: `Queued ${result.count} transfers. They are not paid yet.` } : { error: result.message };
-  }
+  revalidatePath("/admin/payouts");
+  revalidatePath("/payouts");
+  if (intent === "create") return createBatch(user.id, env, now);
+  if (intent === "release-batch") return releaseBatch(user.id, env, now, client, formData);
+  if (intent === "submit") return { error: "Use Release Batch after reviewing the recipient count and total." };
   if (!id) return { error: "Choose a withdrawal." };
   if (intent === "approve") return approveWithdrawal(prismaPayouts, id, user.id, now);
   if (intent === "reject") return rejectWithdrawal(prismaPayouts, id, user.id, String(formData.get("reason") ?? ""), now);
@@ -106,4 +99,64 @@ export async function adminPayoutAction(_state: PayoutFormState, formData: FormD
     });
   }
   return { error: "That payout action is not available." };
+}
+
+const OBJECT_ID = /^[a-f0-9]{24}$/i;
+
+async function createBatch(actorId: string, env: ReturnType<typeof readEnv>, now: Date): Promise<PayoutFormState> {
+  const schedule = await readSchedule(now);
+  const result = await prepareAdminBatch({
+    admin: true,
+    store: prismaAutoPayouts,
+    repo: prismaPayouts,
+    now,
+    currencyCode: env.rewardCurrencyCode,
+    minimumKobo: env.payoutMinKobo,
+    minUsdCents: schedule.minUsdCents,
+    actorId,
+    referenceFor: () => createWithdrawalReference(1),
+  });
+  if (result.status === "enrolled") {
+    const total = formatReward(result.totalKobo, "NGN", 100);
+    return { message: `Reserved ${result.enrolled} payouts, total ${total}. Review the batch before releasing it. Nothing was sent.` };
+  }
+  if (result.status === "locked") return { error: "Another payout batch is being created. Try again." };
+  if (result.status === "currency") return { error: "Payout batches require an OPN balance." };
+  if (result.status === "no_rate") return { error: "Save an unexpired naira rate before creating a batch." };
+  if (result.status === "conflict") return { error: "The batch could not be saved. Reserved payouts were not sent. Try again." };
+  if (result.status === "forbidden") return { error: "You do not have access to payout administration." };
+  return { message: "Nobody is eligible for a new batch." };
+}
+
+async function releaseBatch(
+  actorId: string,
+  env: ReturnType<typeof readEnv>,
+  now: Date,
+  client: ReturnType<typeof clientFromEnv>,
+  formData: FormData,
+): Promise<PayoutFormState> {
+  const batchId = String(formData.get("batchId") ?? "");
+  const confirmCount = Number(formData.get("confirmCount"));
+  const confirmKobo = Number(formData.get("confirmKobo"));
+  if (!OBJECT_ID.test(batchId) || !Number.isInteger(confirmCount) || !Number.isInteger(confirmKobo)) {
+    return { error: "Confirm the recipient count and total before releasing a batch." };
+  }
+  if (!client) return { error: "Paystack is not configured." };
+  const result = await releaseAdminBatch({
+    admin: true,
+    paused: (await readSchedule(now)).paused,
+    repo: prismaPayouts,
+    client,
+    batchId,
+    confirmCount,
+    confirmKobo,
+    actorId,
+    now,
+    transfersEnabled: env.paystackTransfersEnabled,
+    liveConfirmed: env.paystackLiveConfirmed,
+    keyMode: paystackKeyMode(env.paystackSecretKey),
+    feeBufferKobo: env.payoutFeeBufferKobo,
+  });
+  if (!result.ok) return { error: result.message };
+  return { message: `Queued ${result.count} transfers. Paystack has not confirmed payment yet.` };
 }

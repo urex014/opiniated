@@ -23,11 +23,11 @@ export function AdminScheduleForm({
     <form action={action} className="grid max-w-xl gap-3">
       <FormNote error={state.error} message={state.message} />
       <p className="text-sm leading-6 text-muted">
-        Batches are {paused ? "paused" : "allowed to run"}. Interval {intervalDays} days. Minimum {minUsdCents} cents. {rateLabel}
+        Release is {paused ? "paused" : "allowed"}. Minimum {minUsdCents} cents. {rateLabel} Creating a batch only reserves balances. The interval does not send transfers.
       </p>
       <div className="flex flex-wrap gap-2">
         <button type="submit" name="intent" value={paused ? "resume" : "pause"} disabled={pending} className="btn btn-secondary">
-          {paused ? "Allow batches" : "Pause submissions"}
+          {paused ? "Allow release" : "Pause release"}
         </button>
       </div>
       <Field label="Interval in days" name="intervalDays" type="number" defaultValue={String(intervalDays)} />

@@ -66,11 +66,12 @@ export default function PrivacyPage() {
 
       <LegalSection title="Survey providers">
         <p>
-          Live surveys in this version come from BitLabs when the operator has configured it. To request surveys, the
-          server sends BitLabs your internal account id, and may also send the IP address and user agent of the request.
-          BitLabs uses that to decide which surveys to return and to send completion callbacks back to this account.
-          The callback includes a transaction id, a survey reference, an event type, and a reward amount. Survey
-          questions are asked on the provider’s site after you leave Opiniated.
+          Live surveys in this version come from CPX Research when the operator has configured it and turned it on. To
+          request surveys, the server sends CPX Research your internal account id. When the request has a trusted client
+          IP, the server also sends that IP address and the user agent. CPX Research uses those values to choose surveys
+          and to send completion callbacks back to this account. The callback includes a transaction id, a survey
+          reference, a status, and a reward amount. The server does not send your email address, birthday, gender,
+          postal code, or country. Survey questions are asked on the provider’s site after you leave Opiniated.
         </p>
         <p>
           TheoremReach is not enabled. This installation does not call TheoremReach and does not send account data to
@@ -110,6 +111,23 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Traffic quality">
+        <p>
+          Registration, sign-in, survey launch, reward callbacks, and payout preparation are checked with explainable
+          rules. The check can record a score, the rule names that fired, and a keyed hash of a normalized email when
+          an email is part of that check. It does not keep the raw IP address, the raw email, or a user-agent string on
+          those rows. A bank comparison uses a keyed hash of the bank code, the last four digits, and the account name.
+          The full account number is still not stored.
+        </p>
+        <p>
+          Sharing a public network, a school, an office, a mobile carrier, or a VPN is not treated as fraud by itself.
+          No third-party IP reputation service is used unless the operator configures one. If that service is down, the
+          check continues without blocking everyone. Risk rows are kept for 30 days unless the operator sets a shorter
+          period. An open payout review pauses payment of the existing balance and does not delete it. Write to the
+          support address to ask for that review. The target response time is 14 days.
+        </p>
+      </LegalSection>
+
       <LegalSection title="Retention and deletion">
         <p>
           Account information is kept while the account is open. Password-reset links expire after one hour.
@@ -145,7 +163,7 @@ export default function PrivacyPage() {
         <ul className="list-disc space-y-1 pl-5">
           <li>A recorded lawful basis for each use, including consent, contract, and legitimate interests.</li>
           <li>An international transfer mechanism if account data is hosted outside the user’s country.</li>
-          <li>A subprocessor list and signed terms with BitLabs, Cloudflare, Resend, Paystack, the host, and the database host.</li>
+          <li>A subprocessor list and signed terms with CPX Research, Cloudflare, Resend, Paystack, the host, and the database host.</li>
           <li>Whether a representative or data protection officer is required. None is appointed in the product.</li>
           <li>Age checks. The terms say you must be 18 or older. The application does not verify age.</li>
           <li>Cookies set by a survey provider after you leave this site. This application only sets the session cookie described above.</li>

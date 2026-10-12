@@ -9,7 +9,7 @@ export default function HelpPage() {
       <h1 className="page-title">Help</h1>
       <div className="mt-6 grid gap-4 text-sm leading-6">
         <p>If the survey list is empty, there may be nothing you qualify for at the moment. Use Refresh surveys later.</p>
-        <p>If surveys fail to load, use Retry. A VPN, an unsupported country, or a provider restriction can also block the list. The page shows that reason when BitLabs sends one.</p>
+        <p>If surveys fail to load, use Retry. An empty list means nothing is available for this account right now.</p>
         <p>A survey that will not start has usually left the list. Go back to Surveys and pick a current one.</p>
         <p>
           You need an account before a survey can be started. Reward questions belong on the rewards page after you
