@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { CookieNotice } from "@/components/layout/cookie-notice";
+import { OrganizationJsonLd } from "@/components/seo/organization-json-ld";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,6 +26,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
+      <head>
+        <OrganizationJsonLd />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <CookieNotice />
