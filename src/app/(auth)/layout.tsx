@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { Logo } from "@/components/layout/logo";
+import { privateRobots } from "@/lib/site/metadata";
+
+export const metadata: Metadata = { robots: privateRobots };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

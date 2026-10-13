@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import Link from "next/link";
+import { publicMetadata } from "@/lib/site/metadata";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata = publicMetadata("/about");
 
 export default function AboutPage() {
   return (
@@ -14,6 +15,11 @@ export default function AboutPage() {
         </p>
         <p>The site shows the reward and estimated length when the provider sends them. It does not invent conversion rates, extra descriptions, or activity from other people.</p>
         <p>Survey questions are asked by the research provider, not by Opiniated. Read each survey’s own notice before you share personal details.</p>
+        <p>
+          How a reward is credited and paid is on <Link href="/how-it-works" className="text-brand">How it works</Link>.
+          The rules are in the <Link href="/terms" className="text-brand">Terms of Service</Link>. Questions go to the{" "}
+          <Link href="/contact" className="text-brand">contact page</Link>.
+        </p>
       </div>
     </article>
   );

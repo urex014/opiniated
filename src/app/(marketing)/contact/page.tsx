@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { SupportContact } from "@/components/legal/support-contact";
+import { publicMetadata } from "@/lib/site/metadata";
 
-export const metadata: Metadata = { title: "Contact" };
+export const metadata = publicMetadata("/contact");
 
 export default function ContactPage() {
   return (
@@ -12,7 +12,8 @@ export default function ContactPage() {
       <p>
         Privacy requests are also described in the <Link href="/privacy" className="text-brand">Privacy Policy</Link>.
         The same address is used on the <Link href="/terms" className="text-brand">Terms of Service</Link> and in the
-        footer. Signed-in account tools are on the account page after you log in.
+        footer. Signed-in account tools are on the account page after you log in. Common reward questions are answered
+        on the <Link href="/help" className="text-brand">help page</Link>.
       </p>
     </article>
   );

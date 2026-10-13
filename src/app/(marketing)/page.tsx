@@ -1,10 +1,8 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { StepList } from "@/components/marketing/step-list";
+import { publicMetadata } from "@/lib/site/metadata";
 
-export const metadata: Metadata = {
-  title: "Your opinions are worth something",
-};
+export const metadata = publicMetadata("/");
 
 const steps = [
   { title: "Create your account", text: "Register with an email and password. Your account is how rewards are matched to you." },
@@ -24,7 +22,7 @@ const faqs = [
   },
   {
     q: "Can I withdraw the balance?",
-    a: "100 OPN equal $1.00. Once your available balance reaches $5.00 and a verified Nigerian bank account is saved, the next scheduled batch includes you. You do not request a withdrawal. The transfer is paid only after Paystack confirms it.",
+    a: "100 OPN equal $1.00. Once your available balance reaches $5.00 and a verified Nigerian bank account has been saved for at least 24 hours, the next scheduled batch reserves it. You do not request a withdrawal. Paystack marks it paid only after the transfer succeeds.",
   },
   {
     q: "What if I do not qualify?",
@@ -78,7 +76,8 @@ export default function HomePage() {
             </p>
             <p className="mt-3 text-sm leading-6 text-muted">
               Completions and reversals come from signed server callbacks. You cannot add a reward from the browser.
-              Once the available balance reaches $5.00, the next scheduled batch can reserve it. Paystack confirms the payment.
+              Once the available balance reaches $5.00 and a verified Nigerian bank account has been saved for 24 hours,
+              the next scheduled batch can reserve it. Paystack confirms the payment.
             </p>
           </div>
           <div className="rounded-lg border border-line bg-white p-4">
@@ -89,6 +88,26 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-10">
+        <h2 className="section-title">Before you start</h2>
+        <ul className="mt-4 grid max-w-3xl list-disc gap-2 pl-5 text-sm leading-6 text-muted">
+          <li>Rewards are Opiniated Points. 100 OPN equal $1.00.</li>
+          <li>A reward is added only after the survey provider confirms the completion. Opening a survey is not enough.</li>
+          <li>
+            Payouts go to a verified Nigerian bank account through Paystack once the available balance reaches $5.00 and
+            the account has been saved for at least 24 hours. Other payout countries are not offered.
+          </li>
+          <li>Surveys are not always available. A screen-out does not add a reward.</li>
+        </ul>
+        <nav aria-label="Related pages" className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <Link href="/how-it-works" className="font-medium text-brand">How it works</Link>
+          <Link href="/help" className="font-medium text-brand">Help</Link>
+          <Link href="/terms" className="font-medium text-brand">Terms</Link>
+          <Link href="/privacy" className="font-medium text-brand">Privacy</Link>
+          <Link href="/contact" className="font-medium text-brand">Contact</Link>
+        </nav>
       </section>
 
       <section className="mx-auto max-w-5xl px-4 py-10">

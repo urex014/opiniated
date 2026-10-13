@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalSection } from "@/components/legal/document";
 import { SupportContact } from "@/components/legal/support-contact";
 import { POLICY_VERSIONS } from "@/lib/legal/versions";
+import { publicMetadata } from "@/lib/site/metadata";
 
-export const metadata: Metadata = { title: "Terms" };
+export const metadata = publicMetadata("/terms");
 
 export default function TermsPage() {
   return (

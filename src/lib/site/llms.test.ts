@@ -1,19 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { GET } from "@/app/llms.txt/route";
-import { llmsPages, llmsTxt, pageUrl } from "@/lib/site/llms";
+import { llmsTxt } from "@/lib/site/llms";
+import { absoluteUrl, siteOrigin } from "@/lib/site/origin";
+import { publicPages } from "@/lib/site/public-pages";
 
 const excluded = ["/login", "/register", "/forgot-password", "/reset-password", "/verify-email", "/dashboard", "/surveys", "/rewards", "/payouts", "/activity", "/account", "/admin", "/api/"];
 
 describe("llms.txt", () => {
   it("maps only the public pages in the llms.txt link shape", () => {
     const body = llmsTxt();
+    const origin = siteOrigin();
     expect(body.startsWith("# Opiniated\n")).toBe(true);
     expect(body).toContain("> Share your views through online surveys and earn rewards for the time you spend participating.");
 
-    const links = [...body.matchAll(/^- \[(.+?)\]\((https:\/\/[^)]+)\): (.+)$/gm)];
-    expect(links.map((match) => match[2])).toEqual(llmsPages().map((page) => pageUrl(page.path)));
+    const links = [...body.matchAll(/^- \[(.+?)\]\((https?:\/\/[^)]+)\): (.+)$/gm)];
+    expect(links.map((match) => match[2])).toEqual(publicPages.map((page) => absoluteUrl(page.path)));
     for (const match of links) {
-      expect(match[2].startsWith("https://opiniated.vercel.app")).toBe(true);
+      expect(match[2].startsWith(origin)).toBe(true);
       expect(match[3].endsWith(".")).toBe(true);
     }
     for (const path of excluded) {

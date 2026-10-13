@@ -1,8 +1,12 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { requireUser } from "@/lib/auth/current-user";
 import { readEnv } from "@/lib/env";
 import { isAdminEmail } from "@/lib/payouts/access";
+import { privateRobots } from "@/lib/site/metadata";
+
+export const metadata: Metadata = { robots: privateRobots };
 
 export const instant = false;
 
