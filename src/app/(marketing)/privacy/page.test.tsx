@@ -14,7 +14,7 @@ describe("public policy pages", () => {
     expect(html).toContain("TheoremReach is not enabled");
     expect(html).toContain("CPX Research");
     expect(html).toContain("opiniated_session");
-    expect(html).toContain("Needs review");
+    expect(html).toContain("opiniated_cookie_notice");
     expect(html).toContain("sign-in");
     expect(html.includes("mailto:") || html.includes("NEXT_PUBLIC_SUPPORT_EMAIL")).toBe(true);
   });

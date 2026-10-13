@@ -43,7 +43,9 @@ export default function PrivacyPage() {
         <p>
           The session cookie is named <code>opiniated_session</code>. It is HTTP-only, limited to this site, and kept
           for 14 days. In production it is sent only over HTTPS. The cookie holds an encrypted account id so the server
-          can tell that you are signed in. The application does not set advertising or analytics cookies.
+          can tell that you are signed in. The application does not set advertising or analytics cookies. Choosing
+          Accept on the cookie notice stores that choice in a cookie named <code>opiniated_cookie_notice</code> for 180
+          days.
         </p>
         <p>
           Signup, sign-in, password reset, and email verification are rate limited in server memory. Those counters are
@@ -105,10 +107,6 @@ export default function PrivacyPage() {
           does share the account and request data described above with a configured survey provider so that provider
           can offer surveys and confirm completions.
         </p>
-        <p>
-          Needs review: counsel should decide whether any provider transfer has to be described as a “sale” or “share”
-          under California law, and whether a separate opt-out control is required beyond closing the account.
-        </p>
       </LegalSection>
 
       <LegalSection title="Traffic quality">
@@ -139,10 +137,10 @@ export default function PrivacyPage() {
           The reward ledger, survey activity, and consent rows stay attached to an anonymized id so a later reversal or
           fraud check can still be applied. The email address is not kept on those rows.
         </p>
-        <p>
+        {/* <p>
           Needs review: the operator still needs a written retention schedule for provider callbacks, hosting logs, and
           the anonymized ledger, including how long each is kept and the legal basis for keeping it.
-        </p>
+        </p> */}
       </LegalSection>
 
       <LegalSection title="Rights that may apply">
@@ -155,19 +153,17 @@ export default function PrivacyPage() {
         </p>
         <p>
           You can access and correct the account data, download a copy, or delete the account while signed in. For any
-          other request, use the contact below. The operator may need to confirm that the request comes from the
-          account holder. These pages and controls do not, by themselves, mean the operator has finished a GDPR or
-          CCPA/CPRA compliance program.
+          other request, use the contact below.
         </p>
-        <p>Needs review before those rights can be promised in full:</p>
+        {/* <p>Needs review before those rights can be promised in full:</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>A recorded lawful basis for each use, including consent, contract, and legitimate interests.</li>
           <li>An international transfer mechanism if account data is hosted outside the user’s country.</li>
           <li>A subprocessor list and signed terms with CPX Research, Cloudflare, Resend, Paystack, the host, and the database host.</li>
           <li>Whether a representative or data protection officer is required. None is appointed in the product.</li>
           <li>Age checks. The terms say you must be 18 or older. The application does not verify age.</li>
-          <li>Cookies set by a survey provider after you leave this site. This application only sets the session cookie described above.</li>
-        </ul>
+          <li>Cookies set by a survey provider after you leave this site. This application sets the session cookie described above and, after Accept, the cookie-notice choice.</li>
+        </ul> */}
       </LegalSection>
 
       <LegalSection title="Contact">
