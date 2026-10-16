@@ -1,0 +1,1 @@
+https://opiniated.vercel.app/api/cpx/postback?status={status}&trans_id={trans_id}&user_id={user_id}&amount_local={amount_local}&amount_usd={amount_usd}&offer_id={offer_ID}&secure_hash={secure_hash}&ip_click={ip_click}  

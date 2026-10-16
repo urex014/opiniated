@@ -5,6 +5,7 @@ const privatePaths = [
   "/dashboard",
   "/surveys",
   "/rewards",
+  "/referrals",
   "/payouts",
   "/activity",
   "/account",

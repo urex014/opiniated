@@ -24,7 +24,7 @@ export async function handleCpxPostback(request: Request): Promise<Response> {
         amount_local: url.searchParams.get("amount_local") ?? undefined,
         amount_usd: url.searchParams.get("amount_usd") ?? undefined,
         offer_id: url.searchParams.get("offer_id") ?? url.searchParams.get("offer_ID") ?? undefined,
-        secure_hash: url.searchParams.get("secure_hash") ?? undefined,
+        secure_hash: url.searchParams.get("secure_hash") ?? url.searchParams.get("hash") ?? undefined,
         ip_click: url.searchParams.get("ip_click") ?? undefined,
       },
     });

@@ -16,7 +16,15 @@ import { confirmPasswordMessage, registerFormValues, registerSchema } from "@/li
 
 const initial: FormState = {};
 
-export function RegisterForm({ siteKey, nextPath = "" }: { siteKey: string | null; nextPath?: string }) {
+export function RegisterForm({
+  siteKey,
+  nextPath = "",
+  refCode = "",
+}: {
+  siteKey: string | null;
+  nextPath?: string;
+  refCode?: string;
+}) {
   const [state, action, pending] = useActionState(registerAction, initial);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -116,6 +124,7 @@ export function RegisterForm({ siteKey, nextPath = "" }: { siteKey: string | nul
       </ConsentChoice>
       <TurnstileField siteKey={siteKey} action="signup" resetKey={turnstileResetKey} />
       {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
+      {refCode ? <input type="hidden" name="ref" value={refCode} /> : null}
       <button type="submit" disabled={pending} className="btn btn-primary btn-lg w-full">
         {pending ? "Creating account…" : "Create account"}
       </button>

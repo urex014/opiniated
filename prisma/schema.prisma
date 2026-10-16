@@ -24,6 +24,11 @@ model User {
   consents             ConsentRecord[]
   payoutAccount        PayoutAccount?
   withdrawals          Withdrawal[]
+  referralCode         String                   @unique @default(cuid())
+  referralsMade        Referral[]               @relation("ReferrerUsers")
+  referralReceived     Referral?                @relation("ReferredUser")
+  referrerCommissions  ReferralCommission[]     @relation("ReferrerCommissions")
+  referredCommissions  ReferralCommission[]     @relation("ReferredCommissions")
 }
 
 model PasswordResetToken {
@@ -358,4 +363,68 @@ model RiskAudit {
   createdAt DateTime @default(now())
 
   @@index([reviewId, createdAt])
+}
+
+model Referral {
+  id          String               @id @default(auto()) @map("_id") @db.ObjectId
+  referrerId  String               @db.ObjectId
+  referrer    User                 @relation("ReferrerUsers", fields: [referrerId], references: [id])
+  referredId  String               @unique @db.ObjectId
+  referred    User                 @relation("ReferredUser", fields: [referredId], references: [id])
+  codeUsed    String
+  source      String?
+  createdAt   DateTime             @default(now())
+  commissions ReferralCommission[]
+
+  @@index([referrerId, createdAt])
+}
+
+model ReferralCommission {
+  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+  referralId          String    @db.ObjectId
+  referral            Referral  @relation(fields: [referralId], references: [id])
+  referrerId          String    @db.ObjectId
+  referrer            User      @relation("ReferrerCommissions", fields: [referrerId], references: [id])
+  referredId          String    @db.ObjectId
+  referred            User      @relation("ReferredCommissions", fields: [referredId], references: [id])
+  provider            String
+  providerTxId        String
+  eventType           String    // "CREDIT" | "REVERSAL"
+  status              String    // "APPROVED" | "HELD" | "REVERSED"
+  grossAmountUsd      String?
+  userRewardUnits     Int
+  opiniatedShareUnits Int
+  commissionRateBps   Int
+  amountUnits         Int
+  currencyCode        String    @default("OPN")
+  refTxId             String?
+  holdReason          String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([provider, providerTxId, eventType])
+  @@index([referrerId, status, createdAt])
+  @@index([referredId, createdAt])
+}
+
+model ReferralConfig {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  key               String   @unique @default("default")
+  commissionRateBps Int      @default(1000)
+  enabled           Boolean  @default(true)
+  updatedBy         String?
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+}
+
+model ReferralAudit {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  actorId   String?
+  action    String
+  targetId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetId])
 }

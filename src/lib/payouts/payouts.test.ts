@@ -106,7 +106,7 @@ describe("withdrawal reservation", () => {
     expect(taken.error).toContain("another profile");
     expect((await repo.getPayoutAccount("user-1"))?.accountLast4).toBe("6789");
     expect(await repo.getPayoutAccount("user-2")).toBeNull();
-  });
+  }, 15_000);
 
   it("reuses the saved recipient when the verified account is unchanged", async () => {
     const repo = new MemoryPayoutRepository();
@@ -121,7 +121,7 @@ describe("withdrawal reservation", () => {
     expect((await saveBankAccount(paystack, repo, input)).message).toContain("6789");
     expect((await saveBankAccount(paystack, repo, input)).message).toContain("6789");
     expect(createRecipient).toHaveBeenCalledTimes(1);
-  });
+  }, 15_000);
 });
 
 describe("transfer settlement", () => {

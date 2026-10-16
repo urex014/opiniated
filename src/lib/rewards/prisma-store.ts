@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { planReward } from "@/lib/rewards/planner";
 import type { ApplyResult, RewardStore, ValidatedCallback } from "@/lib/rewards/types";
+import { getReferralCommissionRateBps } from "@/lib/referrals/config";
+import { processReferralForEvent } from "@/lib/referrals/processor";
 
 const MAX_ATTEMPTS = 3;
 
@@ -135,6 +137,11 @@ async function applyOnce(event: ValidatedCallback): Promise<ApplyResult> {
         });
       }
 
+      if (event.type === "COMPLETE" || event.type === "RECONCILIATION") {
+        const commissionRateBps = await getReferralCommissionRateBps(tx);
+        await processReferralForEvent(tx, event, commissionRateBps);
+      }
+
       await tx.processedCallback.create({
         data: callbackRow(event, "ACCEPTED"),
       });
@@ -182,7 +189,8 @@ function isObjectId(value: string): boolean {
 }
 
 function isWriteConflict(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034";
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") return true;
+  return error instanceof Error && /write conflict|deadlock/i.test(error.message);
 }
 
 function activityStatus(type: ValidatedCallback["type"]): "SCREENED_OUT" | "RECONCILED" | "COMPLETED" {

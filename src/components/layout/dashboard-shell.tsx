@@ -10,6 +10,7 @@ const baseItems = [
   { href: "/dashboard", label: "Overview" },
   { href: "/surveys", label: "Surveys" },
   { href: "/rewards", label: "Rewards" },
+  { href: "/referrals", label: "Referrals" },
   { href: "/payouts", label: "Payouts" },
   { href: "/activity", label: "Activity" },
   { href: "/account", label: "Account" },
@@ -30,6 +31,7 @@ export function DashboardShell({
         { href: "/admin/payouts", label: "Payout admin" },
         { href: "/admin/risk", label: "Risk review" },
         { href: "/admin/surveys", label: "Survey providers" },
+        { href: "/admin/referrals", label: "Referrals admin" },
       ]
     : baseItems;
   const pathname = usePathname();

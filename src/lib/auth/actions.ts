@@ -1,9 +1,12 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { generateReferralCode } from "@/lib/referrals/code";
+import { attributeReferral } from "@/lib/referrals/attribution";
+import { REFERRAL_COOKIE_NAME } from "@/lib/referrals/constants";
 import { readEnv } from "@/lib/env";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { safeReturnPath } from "@/lib/auth/return-path";
@@ -62,6 +65,17 @@ export async function registerAction(_state: FormState, formData: FormData): Pro
     return { error: "An account could not be created with that email. If you already have an account, log in." };
   }
 
+  const cookieStore = await cookies();
+  const rawRefCode = formData.get("ref");
+  const refCode = String(rawRefCode ?? cookieStore.get(REFERRAL_COOKIE_NAME)?.value ?? "").trim();
+
+  let referralCode = generateReferralCode();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const codeTaken = await prisma.user.findUnique({ where: { referralCode }, select: { id: true } });
+    if (!codeTaken) break;
+    referralCode = generateReferralCode();
+  }
+
   const acceptedAt = new Date();
   const user = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
@@ -69,6 +83,7 @@ export async function registerAction(_state: FormState, formData: FormData): Pro
         email: identity.email,
         name: identity.name,
         passwordHash: await hashPassword(identity.password),
+        referralCode,
         rewardAccount: { create: {} },
       },
     });
@@ -82,6 +97,13 @@ export async function registerAction(_state: FormState, formData: FormData): Pro
         userAgent: headerList.get("user-agent"),
       }),
     });
+    if (refCode) {
+      await attributeReferral(tx, {
+        referredUserId: created.id,
+        code: refCode,
+        source: rawRefCode ? "link" : "cookie",
+      });
+    }
     return created;
   });
 

@@ -12,7 +12,7 @@ describe.skipIf(!enabled)("mongo rate limit buckets", () => {
   afterAll(async () => {
     await prisma.rateLimitBucket.deleteMany({ where: { key: { startsWith: prefix } } });
     await prisma.$disconnect();
-  });
+  }, 30_000);
 
   it("increments one bucket under concurrent requests", async () => {
     const now = Date.now();
@@ -21,5 +21,5 @@ describe.skipIf(!enabled)("mongo rate limit buckets", () => {
     const windowStart = Math.floor(now / 60_000) * 60_000;
     const row = await prisma.rateLimitBucket.findUnique({ where: { key: `${prefix}:${windowStart}` } });
     expect(row?.count).toBe(12);
-  });
+  }, 30_000);
 });

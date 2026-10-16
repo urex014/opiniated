@@ -39,6 +39,7 @@ describe.skipIf(!enabled)("prisma reward store", () => {
       data: {
         email: `reward-${randomUUID()}@example.com`,
         passwordHash: "test-hash",
+        referralCode: `OPN${randomUUID().replace(/[^a-zA-Z0-9]/g, "").slice(0, 5).toUpperCase()}`,
         rewardAccount: { create: {} },
       },
     });
