@@ -38,6 +38,7 @@ const schema = z.object({
   TRUST_PROXY_HEADERS: z.enum(["true", "false"]).optional(),
   RISK_FINGERPRINT_KEY: z.string().min(32).optional(),
   IP_REPUTATION_URL: z.string().url().optional(),
+  IP_REPUTATION_TIMEOUT_MS: z.coerce.number().int().positive().max(5_000).optional(),
   RISK_EVENT_RETENTION_DAYS: z.coerce.number().int().positive().max(365).optional(),
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
   TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),

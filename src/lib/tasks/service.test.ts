@@ -57,6 +57,8 @@ describe("task service", () => {
       userId: "user-1",
       taskId: TELEGRAM_TASK_ID,
       rewardUnits: 1,
+      telegramUserId: null,
+      telegramUsername: null,
       claimedAt: new Date(),
     };
 
@@ -80,6 +82,8 @@ describe("task service", () => {
         userId: "user-1",
         taskId: TELEGRAM_TASK_ID,
         rewardUnits: 1,
+        telegramUserId: null,
+        telegramUsername: null,
         claimedAt: new Date(),
       });
 

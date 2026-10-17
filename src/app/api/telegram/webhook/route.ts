@@ -8,8 +8,6 @@ import {
 import { claimTask } from "@/lib/tasks/service";
 import { TELEGRAM_TASK_ID } from "@/lib/tasks/constants";
 
-export const dynamic = "force-dynamic";
-
 export async function POST(request: Request) {
   const env = readEnv();
 
