@@ -9,6 +9,10 @@ import { readEnv } from "@/lib/env";
 import { toPublicSurveys } from "@/lib/survey-providers/types";
 import { getRewardSummary } from "@/lib/rewards/queries";
 import { loadSurveysForUser } from "@/lib/surveys/load";
+import { TelegramTaskCard } from "@/components/tasks/telegram-task-card";
+import { hasClaimedTask } from "@/lib/tasks/service";
+import { TELEGRAM_TASK_ID } from "@/lib/tasks/constants";
+import { generateTelegramVerificationPayload } from "@/lib/tasks/telegram-token";
 
 export const metadata: Metadata = { title: "Overview" };
 export const instant = false;
@@ -16,7 +20,15 @@ export const instant = false;
 export default async function DashboardPage() {
   const user = await requireUser();
   const env = readEnv();
-  const [summary, surveys] = await Promise.all([getRewardSummary(user.id), loadSurveysForUser(user.id)]);
+  const [summary, surveys, telegramClaimed] = await Promise.all([
+    getRewardSummary(user.id),
+    loadSurveysForUser(user.id),
+    hasClaimedTask(user.id, TELEGRAM_TASK_ID),
+  ]);
+
+  const botUsername = env.telegramBotUsername ?? "updatedadminbot";
+  const verificationPayload = telegramClaimed ? undefined : generateTelegramVerificationPayload(user.id);
+  const verificationLink = verificationPayload ? `https://t.me/${botUsername}?start=${verificationPayload}` : undefined;
 
   return (
     <>
@@ -39,6 +51,8 @@ export default async function DashboardPage() {
           : `Rewards use ${env.rewardCurrencyCode}. Available points stay in your account until a payout batch includes them.`}{" "}
         They are not paid out until Paystack confirms the transfer.
       </p>
+
+      <TelegramTaskCard initialClaimed={telegramClaimed} verificationLink={verificationLink} />
 
       <section className="mt-8 rounded-lg bg-white px-3 py-4 sm:px-4">
         <div className="mb-3 flex items-baseline justify-between gap-3">

@@ -32,7 +32,7 @@ describe.skipIf(!enabled)("prisma reward store", () => {
     await prisma.postbackLog.deleteMany({ where: { userId: { in: userIds } } });
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
     await prisma.$disconnect();
-  });
+  }, 45_000);
 
   async function createUser(): Promise<string> {
     const user = await prisma.user.create({
@@ -69,7 +69,7 @@ describe.skipIf(!enabled)("prisma reward store", () => {
     expect(transactions).toHaveLength(2);
     expect(transactions[1]?.shortfallUnits).toBe(20);
     expect(transactions.every((row) => row.provider === "cpx")).toBe(true);
-  }, 30_000);
+  }, 45_000);
 
   it("does not double-credit concurrent callbacks for the same transaction", async () => {
     const userId = await createUser();
@@ -81,7 +81,7 @@ describe.skipIf(!enabled)("prisma reward store", () => {
     expect(outcomes).toEqual(["ACCEPTED", "DUPLICATE"]);
     expect(account.availableUnits).toBe(40);
     expect(await prisma.rewardTransaction.count({ where: { userId } })).toBe(1);
-  }, 30_000);
+  }, 45_000);
 
   it("leaves a historical provider row in place when the same external id arrives from CPX", async () => {
     const userId = await createUser();

@@ -29,6 +29,7 @@ model User {
   referralReceived     Referral?                @relation("ReferredUser")
   referrerCommissions  ReferralCommission[]     @relation("ReferrerCommissions")
   referredCommissions  ReferralCommission[]     @relation("ReferredCommissions")
+  taskClaims           TaskClaim[]
 }
 
 model PasswordResetToken {
@@ -427,4 +428,18 @@ model ReferralAudit {
 
   @@index([createdAt])
   @@index([targetId])
+}
+
+model TaskClaim {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId           String
+  rewardUnits      Int
+  telegramUserId   String?
+  telegramUsername String?
+  claimedAt        DateTime @default(now())
+
+  @@unique([userId, taskId])
+  @@index([userId])
 }

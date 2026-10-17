@@ -8,6 +8,7 @@ export type TransactionRow = {
   appliedUnits: number;
   surveyId: string | null;
   shortfallUnits: number;
+  reason?: string | null;
 };
 
 export function TransactionTable({
@@ -70,9 +71,10 @@ export function TransactionTable({
 }
 
 function detail(transaction: TransactionRow): string {
-  const survey = transaction.surveyId ? `Survey ${transaction.surveyId}` : "Reward adjustment";
   if (transaction.type === "WITHDRAWAL") return "Bank withdrawal";
   if (transaction.type === "WITHDRAWAL_REVERSAL") return "Withdrawal returned";
+  if (transaction.reason) return transaction.reason;
+  const survey = transaction.surveyId ? `Survey ${transaction.surveyId}` : "Reward adjustment";
   if (transaction.shortfallUnits > 0) return `${survey}. Part of this reversal could not be collected.`;
   if (transaction.type === "RECONCILIATION") {
     return transaction.appliedUnits < 0 ? `Reversal · ${survey}` : `Adjustment · ${survey}`;

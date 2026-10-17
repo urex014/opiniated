@@ -38,8 +38,11 @@ const schema = z.object({
   TRUST_PROXY_HEADERS: z.enum(["true", "false"]).optional(),
   RISK_FINGERPRINT_KEY: z.string().min(32).optional(),
   IP_REPUTATION_URL: z.string().url().optional(),
-  IP_REPUTATION_TIMEOUT_MS: z.coerce.number().int().positive().max(5_000).optional(),
   RISK_EVENT_RETENTION_DAYS: z.coerce.number().int().positive().max(365).optional(),
+  TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+  TELEGRAM_BOT_USERNAME: z.string().min(1).optional(),
+  TELEGRAM_CHAT_ID: z.string().min(1).optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().min(16).optional(),
 });
 
 export type AppEnv = {
@@ -72,6 +75,10 @@ export type AppEnv = {
   ipReputationUrl: string | null;
   ipReputationTimeoutMs: number;
   riskEventRetentionDays: number;
+  telegramBotToken: string | null;
+  telegramBotUsername: string | null;
+  telegramChatId: string | null;
+  telegramWebhookSecret: string | null;
 };
 
 function blankToUndefined(value: string | undefined): string | undefined {
@@ -110,6 +117,10 @@ export function readEnv(source: Record<string, string | undefined> = process.env
     IP_REPUTATION_URL: blankToUndefined(source.IP_REPUTATION_URL),
     IP_REPUTATION_TIMEOUT_MS: blankToUndefined(source.IP_REPUTATION_TIMEOUT_MS),
     RISK_EVENT_RETENTION_DAYS: blankToUndefined(source.RISK_EVENT_RETENTION_DAYS),
+    TELEGRAM_BOT_TOKEN: blankToUndefined(source.TELEGRAM_BOT_TOKEN),
+    TELEGRAM_BOT_USERNAME: blankToUndefined(source.TELEGRAM_BOT_USERNAME),
+    TELEGRAM_CHAT_ID: blankToUndefined(source.TELEGRAM_CHAT_ID),
+    TELEGRAM_WEBHOOK_SECRET: blankToUndefined(source.TELEGRAM_WEBHOOK_SECRET),
   });
 
   const factor = parsed.REWARD_MINOR_UNIT_FACTOR ?? 1;
@@ -171,6 +182,10 @@ export function readEnv(source: Record<string, string | undefined> = process.env
     ipReputationUrl: parsed.IP_REPUTATION_URL ?? null,
     ipReputationTimeoutMs: parsed.IP_REPUTATION_TIMEOUT_MS ?? 800,
     riskEventRetentionDays: parsed.RISK_EVENT_RETENTION_DAYS ?? 30,
+    telegramBotToken: parsed.TELEGRAM_BOT_TOKEN ?? null,
+    telegramBotUsername: parsed.TELEGRAM_BOT_USERNAME ?? null,
+    telegramChatId: parsed.TELEGRAM_CHAT_ID ?? null,
+    telegramWebhookSecret: parsed.TELEGRAM_WEBHOOK_SECRET ?? null,
   };
 }
 

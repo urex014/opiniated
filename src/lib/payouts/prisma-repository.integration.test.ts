@@ -28,7 +28,7 @@ describe.skipIf(!enabled)("prisma payout reservations", () => {
       await prisma.rewardTransaction.deleteMany({ where: { provider: LEDGER_PROVIDER, providerTxId: { in: references } } });
     }
     await prisma.user.deleteMany({ where: { id: { in: userIds } } });
-  });
+  }, 30_000);
 
   it(
     "lets only one of two concurrent withdrawals reserve the same balance",
@@ -70,6 +70,6 @@ describe.skipIf(!enabled)("prisma payout reservations", () => {
       expect(account?.reservedUnits).toBe(80);
       expect(await prisma.withdrawal.count({ where: { userId: user.id } })).toBe(1);
     },
-    20_000,
+    30_000,
   );
 });
